@@ -9,6 +9,10 @@ class Router
      */
     protected $routes = [];
     /**
+     * Array storing defined states.
+     */
+    protected $states = [];
+    /**
      * String to prefix to every URL. Defaults to the current domain.
      */
     protected $prefix;
@@ -27,6 +31,10 @@ class Router
      */
     public function state($name, $verb, $url, callable $callback)
     {
+        $state = new State($callback);
+        $url = $this->fullUrl($verb, $url);
+        $this->routes[$url] = $state;
+        $this->states[$name] = $state;
     }
 
     /**
@@ -62,6 +70,22 @@ class Router
      */
     public function get($name)
     {
+    }
+
+    /**
+     * Return the URL associated with the state $name.
+     *
+     * @param string $name The state name to resolve.
+     * @return string The generated URL, with optional scheme/domain prefixed.
+     */
+    public function url($name)
+    {
+        
+    }
+
+    protected function fullUrl($verb, $url)
+    {
+        return "$url:$verb";
     }
 }
 
