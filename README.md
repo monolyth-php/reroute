@@ -86,6 +86,7 @@ Instead, make sure the template has access to the $router you defined earlier
 and call the Router::url method:
 
     <a href="<?=$router->url('home')?>">Back to home page</a>
+    <a href="<?=$router->url('user', ['id' => 42])?>">Go to user 42</a>
 
 Redirecting
 -----------
