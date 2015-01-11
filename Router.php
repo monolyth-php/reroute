@@ -31,7 +31,8 @@ class Router
      */
     public function state($name, $url, callable $callback)
     {
-        $state = new State($callback);
+        $url = $this->fullUrl($url);
+        $state = new State($url, $callback);
         $url = '@^'.str_replace('@', '\@', $this->fullUrl($url)).'$@';
         $this->routes[$url] = $state;
         $this->states[$name] = $state;
@@ -163,7 +164,7 @@ class Router
      * @param array $arguments Additional arguments needed to build the URL.
      * @return void
      */
-    public function goto($name, array $arguments = [])
+    public function redirect($name, array $arguments = [])
     {
         header("Location: ".$this->absolute($name, $arguments), true, 302);
         die();
@@ -176,7 +177,7 @@ class Router
      * @param array $arguments Additional arguments needed to build the URL.
      * @return void
      */
-    public function moveto($name, array $arguments = [])
+    public function move($name, array $arguments = [])
     {
         header("Location: ".$this->absolute($name, $arguments), true, 301);
         die();
