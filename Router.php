@@ -22,17 +22,16 @@ class Router
      * (see Router::get below on how to extend existing states).
      *
      * @param string $name The unique name identifying this state.
-     * @param string $verb The HTTP verb associated with the state.
      * @param string $url The URL to match. Can be a FQDN or something relative
      *                    (see Router::under below).
      * @param callable $callback The callback specifying what this state should
      *                           actually do.
      * @return void
      */
-    public function state($name, $verb, $url, callable $callback)
+    public function state($name, $url, callable $callback)
     {
         $state = new State($callback);
-        $url = $this->fullUrl($verb, $url);
+        $url = '@^'.str_replace('@', '\@', $this->fullUrl($url)).'$@';
         $this->routes[$url] = $state;
         $this->states[$name] = $state;
     }
@@ -62,6 +61,17 @@ class Router
      */
     public function resolve($url)
     {
+        // Remove any $_GET values; they're not needed for matching.
+        $url = preg_replace('@\?.*?$@', '', $url);
+        $url = $this->fullUrl($url);
+        foreach ($this->routes as $route => $state) {
+            if (preg_match($route, $url, $matches)) {
+                unset($matches[0]);
+                $state->arguments($matches);
+                return $state;
+            }
+        }
+        return null;
     }
 
     /**
@@ -76,15 +86,72 @@ class Router
      * Return the URL associated with the state $name.
      *
      * @param string $name The state name to resolve.
+     * @param mixed $argument... Additional arguments needed to build the URL.
      * @return string The generated URL, with optional scheme/domain prefixed.
+     */
+    public function absolute($name)
+    {
+        $args = func_get_args();
+        array_shift($args);
+        foreach ($this->routes as $url => $state) {
+            if ($state === $this->states[$name]) {
+                // Remove regex parts:
+                $url = substr($url, 2, -2);
+                // Remove HTTP verb(s):
+                $url = preg_replace('@:[^:]+?$@', '', $url);
+                return $url;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return the URL associated with the state $name, with domain part stripped
+     * if we can detect we already are on that domain (most common use case).
+     *
+     * @param string $name The state name to resolve.
+     * @param mixed $argument... Additional arguments needed to build the URL.
+     * @return string The generated URL, with scheme/domain optionally stripped.
      */
     public function url($name)
     {
-        
+        if ($url = call_user_func_array([$this, 'absolute'], func_get_args())) {
+            if (isset($_SERVER['SERVER_NAME'])) {
+                $url = str_replace(
+                    "http://{$_SERVER['SERVER_NAME']}",
+                    '',
+                    $url
+                );
+            }
+        }
+        return $url;
     }
 
-    protected function fullUrl($verb, $url)
+    /**
+     * Internal helper method to generate a full URL as needed for matching.
+     *
+     * @param string $url The supplied URL we want to match.
+     * @return string A fully regexable URL.
+     */
+    protected function fullUrl($url)
     {
+        $verb = 'GET';
+        if (preg_match("@:([()|A-Z]+)$@", $url, $verbs)) {
+            $verb = $verbs[1];
+        }
+        if (isset($this->prefix)) {
+            $url = $this->prefix.$url;
+        }
+        $parts = parse_url($url);
+        if (!isset($parts['scheme'], $parts['host'])) {
+            $url = sprintf(
+                'http://%s%s',
+                isset($_SERVER['SERVER_NAME']) ?
+                    $_SERVER['SERVER_NAME'] :
+                    'localhost',
+                $url
+            );
+        }
         return "$url:$verb";
     }
 }
