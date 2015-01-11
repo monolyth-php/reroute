@@ -42,15 +42,36 @@ use case in web applications.
         // ...
     });
 
-###Using parameters###
+Using parameters
+----------------
+
+Of course, ReRoute supports parameters in URLs (it wouldn't be particularly
+useful otherwise). In order to use parameters, you must tell your router how
+to handle them by adding a handler. Handlers must implement the
+reroute\Parameter interface.
+
+ReRoute comes with two bundled handlers: reroute\Parameter\Regex and
+reroute\Parameter\Legacy. The first is the most flexible and future-proof
+one; the latter handles parameters like previous versions of Monolyth did.
+
+For full documentation, see the associated pages; for this readme we will
+use the modern Regex handler.
 
     <?php
 
+    use reroute\Parameter\Regex;
+
+    $router->parameterHandler(new Regex);
     $router->state('user', '/(\d+)/', function($id) {
         // ...
     });
 
-###Using named parameters###
+###Named parameters###
+
+You can specify parameters with a name. The exact syntax depends on your chosen
+parameter handler. For Regex parameters, it simply follows PHP regex syntax:
+
+    "/(?'paramName':regex)/"
 
 Note that the order in which they are passed to your callback is not important;
 the reroute\State figures that out for itself.
@@ -91,18 +112,18 @@ and call the Router::url method:
 Redirecting
 -----------
 
-The same goes for redirects. Use the Router::goto method:
+The same goes for redirects. Use the Router::redirect method:
 
     <?php
 
     // Redirect to home needed...
-    $router->goto('home');
+    $router->redirect('home');
 
 The goto method is a pretty dumb redirector; it issues a 302 header and halts
 your script. For more advanced handling, you might want to throw a custom
 exception and handle the redirect in a catch block, as described below.
 
-For convenience, the router also offers a moveto method which does the same,
+For convenience, the router also offers a move method which does the same,
 only with a 301 header (permanent redirect) instead.
 
 Both goto and moveto accept optional arguments a state might need ($id, $name,
