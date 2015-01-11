@@ -16,7 +16,11 @@ class Router
     /**
      * String to prefix to every URL. Defaults to the current domain.
      */
-    protected $prefix;
+    protected $prefix = '';
+    /**
+     * Group the state should be in (faux-namespace).
+     */
+    protected $group;
 
     /**
      * Define a state. Any existing state with the same name will be overridden
@@ -33,6 +37,9 @@ class Router
     {
         $url = $this->fullUrl($url);
         $state = new State($url, $callback);
+        if (isset($this->group)) {
+            $state->group($this->group);
+        }
         $url = '@^'.str_replace('@', '\@', $this->fullUrl($url)).'$@';
         $this->routes[$url] = $state;
         $this->states[$name] = $state;
@@ -50,6 +57,27 @@ class Router
      */
     public function under($prefix, callable $callback)
     {
+        $previous = $this->prefix;
+        $this->prefix .= $prefix;
+        $callback($this);
+        $this->prefix = $previous;
+    }
+
+    /**
+     * Add all states defined inside $callback to $group.
+     *
+     * @param string $group The group to add these states to.
+     * @param callable $callback Callback defining states in this group. It
+     *                           gets passed a single argument (the router
+     *                           instance).
+     * @return void
+     */
+    public function group($group, callable $callback)
+    {
+        $previous = isset($this->group) ? $this->group : null;
+        $this->group = $group;
+        $callback($this);
+        $this->group = $previous;
     }
 
     /**
@@ -195,9 +223,7 @@ class Router
         if (preg_match("@:([()|A-Z]+)$@", $url, $verbs)) {
             $verb = $verbs[1];
         }
-        if (isset($this->prefix)) {
-            $url = $this->prefix.$url;
-        }
+        $url = $this->prefix.$url;
         $parts = parse_url($url);
         if (!isset($parts['scheme'], $parts['host'])) {
             $url = sprintf(
