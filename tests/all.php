@@ -25,7 +25,14 @@ $router->resolve('/john/doe/?foo=bar')->run();
 
 $_SERVER['SERVER_NAME'] = 'localhost';
 echo $router->url('home')."\n";
-echo $router->url('order', 'smith', 'paul')."\n";
+echo $router->url('order', ['first' => 'paul', 'last' => 'smith'])."\n";
+
+$state = $router->get('user');
+try {
+    $state = $router->get('invalid');
+} catch (DomainException $e) {
+    echo "\nNo such state as invalid.\n";
+}
 
 echo "\nAll passed!\n\n";
 
