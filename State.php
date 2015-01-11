@@ -6,12 +6,14 @@ use BadMethodCallException;
 
 class State
 {
+    private $url;
     private $state;
     private $parameters = [];
     private $arguments = [];
 
-    public function __construct(callable $state)
+    public function __construct($url, callable $state)
     {
+        $this->url = $url;
         $this->state = $state;
     }
 
