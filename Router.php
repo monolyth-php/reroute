@@ -1,6 +1,7 @@
 <?php
 
 namespace reroute;
+use DomainException;
 
 class Router
 {
@@ -80,16 +81,20 @@ class Router
      */
     public function get($name)
     {
+        if (!isset($this->states[$name])) {
+            throw new DomainException("Unknown state: $name");
+        }
+        return $this->states[$name];
     }
 
     /**
      * Return the URL associated with the state $name.
      *
      * @param string $name The state name to resolve.
-     * @param mixed $argument... Additional arguments needed to build the URL.
+     * @param array $arguments Additional arguments needed to build the URL.
      * @return string The generated URL, with optional scheme/domain prefixed.
      */
-    public function absolute($name)
+    public function absolute($name, $arguments = [])
     {
         $args = func_get_args();
         array_shift($args);
@@ -99,6 +104,28 @@ class Router
                 $url = substr($url, 2, -2);
                 // Remove HTTP verb(s):
                 $url = preg_replace('@:[^:]+?$@', '', $url);
+                // For all arguments, map the values back into the URL:
+                preg_match_all(
+                    "@\((.*?)\)@",
+                    $url,
+                    $variables,
+                    PREG_SET_ORDER
+                );
+                foreach ($variables as $idx => $var) {
+                    if (preg_match("@\?'(\w+)'@", $var[1], $named)
+                        && isset($arguments[$named[1]])
+                    ) {
+                        $url = str_replace(
+                            $var[0],
+                            $arguments[$named[1]],
+                            $url
+                        );
+                    } elseif (isset($arguments[$idx])) {
+                        $url = str_replace($var[0], $argugments[$idx], $url);
+                    } else {
+                        $url = str_replace($var[0], '', $url);
+                    }
+                }
                 return $url;
             }
         }
@@ -112,6 +139,8 @@ class Router
      * @param string $name The state name to resolve.
      * @param mixed $argument... Additional arguments needed to build the URL.
      * @return string The generated URL, with scheme/domain optionally stripped.
+     *
+     * @todo Abstract away key names in $_SERVER, they're platform-specific...
      */
     public function url($name)
     {
