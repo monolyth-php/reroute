@@ -137,14 +137,14 @@ class Router
      * if we can detect we already are on that domain (most common use case).
      *
      * @param string $name The state name to resolve.
-     * @param mixed $argument... Additional arguments needed to build the URL.
+     * @param array $arguments Additional arguments needed to build the URL.
      * @return string The generated URL, with scheme/domain optionally stripped.
      *
      * @todo Abstract away key names in $_SERVER, they're platform-specific...
      */
-    public function url($name)
+    public function url($name, array $arguments = [])
     {
-        if ($url = call_user_func_array([$this, 'absolute'], func_get_args())) {
+        if ($url = $this->absolute($name, $arguments)) {
             if (isset($_SERVER['SERVER_NAME'])) {
                 $url = str_replace(
                     "http://{$_SERVER['SERVER_NAME']}",
@@ -154,6 +154,32 @@ class Router
             }
         }
         return $url;
+    }
+
+    /**
+     * Temporarily redirect to the URL associated with state $name.
+     *
+     * @param string $name The state name to resolve.
+     * @param array $arguments Additional arguments needed to build the URL.
+     * @return void
+     */
+    public function goto($name, array $arguments = [])
+    {
+        header("Location: ".$this->absolute($name, $arguments), true, 302);
+        die();
+    }
+
+    /**
+     * Permanently redirect to the URL associated with state $name.
+     *
+     * @param string $name The state name to resolve.
+     * @param array $arguments Additional arguments needed to build the URL.
+     * @return void
+     */
+    public function moveto($name, array $arguments = [])
+    {
+        header("Location: ".$this->absolute($name, $arguments), true, 301);
+        die();
     }
 
     /**
