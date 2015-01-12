@@ -10,6 +10,7 @@ class State
     private $state;
     private $parameters = [];
     private $arguments = [];
+    private $group = null;
 
     public function __construct($url, callable $state)
     {
@@ -20,6 +21,14 @@ class State
     public function arguments(array $arguments)
     {
         $this->arguments = $arguments;
+    }
+
+    public function group($group = null)
+    {
+        if (isset($group)) {
+            $this->group = $group;
+        }
+        return $this->group;
     }
 
     public function run()
@@ -36,7 +45,11 @@ class State
                 throw new BadMethodCallException;
             }
         }
-        call_user_func_array($this->state, $arguments);
+        $call = $this->state;
+        while (is_callable($call)) {
+            $call = call_user_func_array($call, $arguments);
+        }
+        return $call;
     }
 }
 
