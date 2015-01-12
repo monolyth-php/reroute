@@ -35,6 +35,7 @@ class Router
      */
     public function state($name, $url, callable $callback)
     {
+        $url = $this->prefix.$url;
         $url = $this->fullUrl($url);
         $state = new State($url, $callback);
         if (isset($this->group)) {
@@ -219,11 +220,10 @@ class Router
      */
     protected function fullUrl($url)
     {
-        $verb = 'GET';
-        if (preg_match("@:([()|A-Z]+)$@", $url, $verbs)) {
-            $verb = $verbs[1];
+        $verb = ':GET';
+        if (preg_match("@:([()|A-Z]+)$@", $url)) {
+            $verb = '';
         }
-        $url = $this->prefix.$url;
         $parts = parse_url($url);
         if (!isset($parts['scheme'], $parts['host'])) {
             $url = sprintf(
@@ -234,7 +234,7 @@ class Router
                 $url
             );
         }
-        return "$url:$verb";
+        return $url.$verb;
     }
 }
 
