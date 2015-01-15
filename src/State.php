@@ -1,6 +1,6 @@
 <?php
 
-namespace reroute;
+namespace Reroute;
 use ReflectionFunction;
 use BadMethodCallException;
 
@@ -20,7 +20,7 @@ class State
 
     public function arguments(array $arguments)
     {
-        $this->arguments = $arguments;
+        $this->arguments = array_values($arguments);
     }
 
     public function group($group = null)
