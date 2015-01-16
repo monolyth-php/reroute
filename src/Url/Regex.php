@@ -6,9 +6,11 @@ use Reroute\Url;
 
 class Regex extends Url
 {
-    public function match($url)
+    public function match($url, $method)
     {
-        if (preg_match("@^{$this->url}$@", $url, $matches)) {
+        if (preg_match("@^{$this->url}$@", $url, $matches)
+            && in_array($method, $this->verbs)
+        ) {
             unset($matches[0]);
             return $matches;
         }
