@@ -95,8 +95,13 @@ class Router
          */
         $url = preg_replace('@\?.*?$@', '', $url);
 
+        // Todo: is this Apache-specific?
+        $method = isset($_SERVER['REQUEST_METHOD']) ?
+            $_SERVER['REQUEST_METHOD'] :
+            'GET';
+
         foreach ($this->routes as $route => $state) {
-            if ($state->match($url)) {
+            if ($state->match($url, $method)) {
                 return $state;
             }
         }
