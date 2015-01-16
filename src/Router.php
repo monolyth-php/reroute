@@ -98,15 +98,7 @@ class Router
         foreach ($this->routes as $route => $state) {
             if (preg_match($route, $url, $matches)) {
                 unset($matches[0]);
-                $normalized = [];
-                foreach ($matches as $key => $match) {
-                    if (is_numeric($key)) {
-                        $normalized[count($normalized)] = $match;
-                    } else {
-                        $normalized[$key] = $match;
-                    }
-                }
-                $state->arguments($normalized);
+                $state->arguments($matches);
                 return $state;
             }
         }
