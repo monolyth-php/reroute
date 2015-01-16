@@ -18,8 +18,6 @@ class Regex extends Url
     public function generateAbsolute(array $arguments = [])
     {
         $url = $this->url;
-        // Remove HTTP verb(s):
-        $url = preg_replace('@:[^:]+?$@', '', $url);
         // For all arguments, map the values back into the URL:
         preg_match_all(
             "@\((.*?)\)@",
