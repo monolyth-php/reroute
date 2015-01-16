@@ -129,8 +129,6 @@ class Router
         foreach ($this->routes as $state) {
             if ($state === $this->states[$name]) {
                 $url = $state->url()->generateAbsolute($arguments);
-                // Remove HTTP verb(s):
-                $url = preg_replace('@:[^:]+?$@', '', $url);
                 return $url;
             }
         }
