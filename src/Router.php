@@ -83,22 +83,18 @@ class Router
      * Attempt to resolve a reroute\State associated with $url.
      *
      * @param string $url The url to resolve.
+     * @param string $method The HTTP method (GET, POST etc.) to match on.
      * @return reroute\State If succesful, the corresponding state is returned.
      * @throws reroute\ResolveException When $url matches no known state
      *                                  (handling of the exception is up to the
      *                                  implementation, probably a 404).
      */
-    public function resolve($url)
+    public function resolve($url, $method = 'GET')
     {
         /**
          * Remove any $_GET values; they're not needed for matching.
          */
         $url = preg_replace('@\?.*?$@', '', $url);
-
-        // Todo: is this Apache-specific?
-        $method = isset($_SERVER['REQUEST_METHOD']) ?
-            $_SERVER['REQUEST_METHOD'] :
-            'GET';
 
         foreach ($this->routes as $route => $state) {
             if ($state->match($url, $method)) {
