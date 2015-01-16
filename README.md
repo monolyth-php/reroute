@@ -8,7 +8,7 @@ Installation
 2. Include the autoloader: `<?php include '/path/to/reroute/autoload.php' ?>`
 3. Done! Start using it :)
 
-###Installation using Monolyth###
+###Installation using Composer###
 
 1. Add a resource and version to Lintels.json
 2. Run /path/to/monolyth/bin/modules update /path/to/site
@@ -22,23 +22,24 @@ To match a route (a URI endpoint) to a state:
 
     <?php
 
-    use reroute\Router;
+    use Reroute\Router;
+    use Reroute\Url\Flat;
 
     $router = new Router;
-    $router->state('home', '/:GET', function() {
+    $router->state('home', new Flat('/'), function() {
         echo 'Hello world!';
     });
     $state = $router->resolve($_SERVER['REQUEST_URI']);
     $state->run();
 
-The value GET for an HTTP verb may be omitted, since that is the most common
-use case in web applications.
+The second argument $verbs to a Url constructor defaults to ['GET'], since
+that is the most common use case in web applications.
 
 ###Matching multiple HTTP verbs###
 
     <?php
 
-    $router->state('home', '/:(GET|POST)', function($verb) {
+    $router->state('home', new Flat('/', ['GET', 'POST']), function($verb) {
         // ...
     });
 
@@ -47,29 +48,30 @@ Using parameters
 
 Of course, ReRoute supports parameters in URLs (it wouldn't be particularly
 useful otherwise). In order to use parameters, you must tell your router how
-to handle them by adding a handler. Handlers must implement the
-reroute\Parameter interface.
+to handle them by passing one of the other URL classes.
 
-ReRoute comes with two bundled handlers: reroute\Parameter\Regex and
-reroute\Parameter\Legacy. The first is the most flexible and future-proof
-one; the latter handles parameters like previous versions of Monolyth did.
+ReRoute comes with a few bundled Url classes:
+
+- Reroute\Url\Flat, for simple URLs without parameters;
+- Reroute\Url\Regex, for full regex matching and maximum flexibility;
+- Reroute\Url\Legacy, for legacy Monolyth applications;
+- Reroute\Url\Angular, for AngularJS-style URL definitions;
 
 For full documentation, see the associated pages; for this readme we will
 use the modern Regex handler.
 
     <?php
 
-    use reroute\Parameter\Regex;
+    use Reroute\Url\Regex;
 
-    $router->parameterHandler(new Regex);
-    $router->state('user', '/(\d+)/', function($id) {
+    $router->state('user', new Regex('/(\d+)/'), function($id) {
         // ...
     });
 
 ###Named parameters###
 
 You can specify parameters with a name. The exact syntax depends on your chosen
-parameter handler. For Regex parameters, it simply follows PHP regex syntax:
+URL class. For Regex URLs, it simply follows PHP regex syntax:
 
     "/(?'paramName':regex)/"
 
@@ -80,7 +82,7 @@ the reroute\State figures that out for itself.
 
     $router->state(
         'user',
-        "/(?'firstname':\s+)/(?'lastname':\s+)/:(?'verb':(GET|POST))",
+        new Regex("/(?'firstname':\s+)/(?'lastname':\s+)/", ['GET', 'POST']),
         function($verb, $lastname, $firstname) {
             // ...
         }
@@ -138,13 +140,16 @@ Handling 404s and other errors
 
     <?php
 
+    use Reroute\Url\Nomatch;
+
     // First, define a 404 state:
-    $router->state('404', ':', function() {
+    $router->state('404', new Nomatch, function() {
         echo "The URL did an oopsie!";
     });
 
-Since ':' will never match any URL, this is a safe placeholder. But you could
-use anything, really, as long as it's not already in use in your application.
+Since `Nomatch` will never match any URL, this is a safe placeholder. But you
+could use anything, really, as long as it's not already in use in your
+application.
 
 Next, try to resolve the currently request URI. On failure, use the 404 state
 instead:
@@ -164,7 +169,7 @@ can always hide exceptions from end users, throw exceptions from states etc.:
 
     <?php
     
-    use reroute\HTTP404Exception;
+    use Reroute\HTTP404Exception;
 
     try {
         if (!($state = $router->resolve($_SERVER['REQUEST_URI']))) {
