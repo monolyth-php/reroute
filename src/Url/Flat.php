@@ -6,9 +6,11 @@ use Reroute\Url;
 
 class Flat extends Url
 {
-    public function match($url)
+    public function match($url, $method)
     {
-        if ($this->full($this->url) == $this->full($url)) {
+        if ($this->full($this->url) == $this->full($url)
+            && in_array($method, $this->verbs)
+        ) {
             return [];
         }
         return null;
