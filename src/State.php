@@ -20,7 +20,7 @@ class State
 
     public function arguments(array $arguments)
     {
-        $this->arguments = array_values($arguments);
+        $this->arguments = $arguments;
     }
 
     public function group($group = null)
