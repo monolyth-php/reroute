@@ -26,9 +26,9 @@ class State
         return $this->group;
     }
 
-    public function match($url)
+    public function match($url, $method)
     {
-        $arguments = $this->url->match($url);
+        $arguments = $this->url->match($url, $method);
         if (!is_null($arguments)) {
             $this->arguments = $arguments;
             return true;
