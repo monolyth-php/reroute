@@ -33,16 +33,14 @@ class Router
      *                           actually do.
      * @return void
      */
-    public function state($name, $url, callable $callback)
+    public function state($name, Url $url, callable $callback)
     {
-        $url = $this->prefix.$url;
-        $url = $this->fullUrl($url);
+        $url->prefix($this->prefix);
         $state = new State($url, $callback);
         if (isset($this->group)) {
             $state->group($this->group);
         }
-        $url = '@^'.str_replace('@', '\@', $this->fullUrl($url)).'$@';
-        $this->routes[$url] = $state;
+        $this->routes[] = $state;
         $this->states[$name] = $state;
     }
 
@@ -92,13 +90,13 @@ class Router
      */
     public function resolve($url)
     {
-        // Remove any $_GET values; they're not needed for matching.
+        /**
+         * Remove any $_GET values; they're not needed for matching.
+         */
         $url = preg_replace('@\?.*?$@', '', $url);
-        $url = $this->fullUrl($url);
+
         foreach ($this->routes as $route => $state) {
-            if (preg_match($route, $url, $matches)) {
-                unset($matches[0]);
-                $state->arguments($matches);
+            if ($state->match($url)) {
                 return $state;
             }
         }
@@ -128,34 +126,11 @@ class Router
     {
         $args = func_get_args();
         array_shift($args);
-        foreach ($this->routes as $url => $state) {
+        foreach ($this->routes as $state) {
             if ($state === $this->states[$name]) {
-                // Remove regex parts:
-                $url = substr($url, 2, -2);
+                $url = $state->url()->generateAbsolute($arguments);
                 // Remove HTTP verb(s):
                 $url = preg_replace('@:[^:]+?$@', '', $url);
-                // For all arguments, map the values back into the URL:
-                preg_match_all(
-                    "@\((.*?)\)@",
-                    $url,
-                    $variables,
-                    PREG_SET_ORDER
-                );
-                foreach ($variables as $idx => $var) {
-                    if (preg_match("@\?'(\w+)'@", $var[1], $named)
-                        && isset($arguments[$named[1]])
-                    ) {
-                        $url = str_replace(
-                            $var[0],
-                            $arguments[$named[1]],
-                            $url
-                        );
-                    } elseif (isset($arguments[$idx])) {
-                        $url = str_replace($var[0], $argugments[$idx], $url);
-                    } else {
-                        $url = str_replace($var[0], '', $url);
-                    }
-                }
                 return $url;
             }
         }
