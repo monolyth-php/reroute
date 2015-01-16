@@ -14,7 +14,7 @@ class Flat extends Url
         return null;
     }
 
-    public function generateAbsolute(array $arguments = [])
+    public function generate(array $arguments = [])
     {
         return $this->full($this->url);
     }
