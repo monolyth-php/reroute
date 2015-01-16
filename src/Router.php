@@ -116,50 +116,6 @@ class Router
     }
 
     /**
-     * Return the URL associated with the state $name.
-     *
-     * @param string $name The state name to resolve.
-     * @param array $arguments Additional arguments needed to build the URL.
-     * @return string The generated URL, with optional scheme/domain prefixed.
-     */
-    public function absolute($name, $arguments = [])
-    {
-        $args = func_get_args();
-        array_shift($args);
-        foreach ($this->routes as $state) {
-            if ($state === $this->states[$name]) {
-                $url = $state->url()->generateAbsolute($arguments);
-                return $url;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Return the URL associated with the state $name, with domain part stripped
-     * if we can detect we already are on that domain (most common use case).
-     *
-     * @param string $name The state name to resolve.
-     * @param array $arguments Additional arguments needed to build the URL.
-     * @return string The generated URL, with scheme/domain optionally stripped.
-     *
-     * @todo Abstract away key names in $_SERVER, they're platform-specific...
-     */
-    public function url($name, array $arguments = [])
-    {
-        if ($url = $this->absolute($name, $arguments)) {
-            if (isset($_SERVER['SERVER_NAME'])) {
-                $url = str_replace(
-                    "http://{$_SERVER['SERVER_NAME']}",
-                    '',
-                    $url
-                );
-            }
-        }
-        return $url;
-    }
-
-    /**
      * Temporarily redirect to the URL associated with state $name.
      *
      * @param string $name The state name to resolve.
