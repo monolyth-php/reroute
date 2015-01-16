@@ -26,8 +26,11 @@ abstract class Url
         );
     }
 
-    protected function full($url)
+    protected function full($url = null)
     {
+        if (!isset($url)) {
+            $url = $this->url;
+        }
         $parts = parse_url($url);
         if (!isset($parts['scheme'], $parts['host'])) {
             $url = sprintf(
