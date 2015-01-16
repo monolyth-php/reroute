@@ -1,0 +1,21 @@
+{
+    "name": "monomelodies/Reroute",
+    "description": "Extremely flexible PHP5 router",
+    "license": "MIT",
+    "keywords": ["php","router"],
+    "authors": [
+        {
+            "name": "Marijn Ophorst",
+            "email": "marijn@monomelodies.nl"
+        }
+    ],
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "4.0.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Reroute": "src"
+        }
+    }
+}    
