@@ -18,17 +18,22 @@ class State
         $this->state = $state;
     }
 
-    public function arguments(array $arguments)
-    {
-        $this->arguments = $arguments;
-    }
-
     public function group($group = null)
     {
         if (isset($group)) {
             $this->group = $group;
         }
         return $this->group;
+    }
+
+    public function match($url)
+    {
+        $arguments = $this->url->match($url);
+        if (!is_null($arguments)) {
+            $this->arguments = $arguments;
+            return true;
+        }
+        return false;
     }
 
     public function run()
@@ -50,6 +55,11 @@ class State
             $call = call_user_func_array($call, $arguments);
         }
         return $call;
+    }
+
+    public function url()
+    {
+        return $this->url;
     }
 }
 
