@@ -1,13 +1,15 @@
 <?php
 
 use Reroute\Router;
+use Reroute\Url\Flat;
+use Reroute\Url\Regex;
 
 class RouterTest extends PHPUnit_Framework_TestCase
 {
     public function testResolveReturnsState()
     {
         $router = new Router;
-        $router->state('home', '/', function() {
+        $router->state('home', new Flat('/'), function() {
             return "Hello world!";
         });
         $state = $router->resolve('/');
@@ -17,7 +19,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testBasicRoute()
     {
         $router = new Router;
-        $router->state('home', '/', function() {
+        $router->state('home', new Flat('/'), function() {
             return "Hello world!";
         });
         $state = $router->resolve('/');
@@ -28,7 +30,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testNamedParameter()
     {
         $router = new Router;
-        $router->state('user', "/(?'id'\d+)/", function($id) {
+        $router->state('user', new Regex("/(?'id'\d+)/"), function($id) {
             return $id;
         });
         $state = $router->resolve('/1/');
@@ -41,7 +43,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $router = new Router;
         $router->state(
             'order',
-            "/(?'first'\w+)/(?'last'\w+)/",
+            new Regex("/(?'first'\w+)/(?'last'\w+)/"),
             function($last, $first) {
                 return compact('last', 'first');
             }
@@ -55,7 +57,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testIgnoreGetParameters()
     {
         $router = new Router;
-        $router->state('home', '/', function() {});
+        $router->state('home', new Flat('/'), function() {});
         $state = $router->resolve('/?foo=bar');
         $this->assertInstanceOf('Reroute\State', $state);
     }
@@ -63,7 +65,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testGenerateUrl()
     {
         $router = new Router;
-        $router->state('home', '/', function() {});
+        $router->state('home', new Flat('/'), function() {});
         $url = $router->url('home');
         $this->assertEquals('http://localhost/', $url);
     }
@@ -73,7 +75,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $router = new Router;
         $router->state(
             'params',
-            "/(?'first'\w+)/(?'last'\w+)/",
+            new Regex("/(?'first'\w+)/(?'last'\w+)/"),
             function($last, $first) {}
         );
         $url = $router->url('params', ['first' => 'john', 'last' => 'doe']);
@@ -97,7 +99,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     {
         $router = new Router;
         $router->under('/foo', function ($router) {
-            $router->state('bar', '/bar/', function () {});
+            $router->state('bar', new Flat('/bar/'), function () {});
         });
         $state = $router->resolve('/foo/bar/');
         $this->assertInstanceOf('Reroute\State', $state);
