@@ -7,7 +7,7 @@ abstract class Url
     protected $url;
     protected $verbs;
 
-    public abstract function match($url);
+    public abstract function match($url, $method);
     public abstract function generate(array $arguments = []);
 
     public function __construct($url, array $verbs = ['GET'])
@@ -46,9 +46,20 @@ abstract class Url
     }
 
     /**
+     * Generate the current URL, but keep it as short as possible (i.e., any
+     * parts already in the current location can be omitted).
+     *
+     * @param array $arguments Additional arguments needed to build the URL.
+     */
+    public function short(array $arguments = [])
+    {
+        $url = $this->generate($arguments);
+        return $url;
+    }
+
+    /**
      * Temporarily redirect to the URL associated with state $name.
      *
-     * @param string $name The state name to resolve.
      * @param array $arguments Additional arguments needed to build the URL.
      * @return void
      */
@@ -61,7 +72,6 @@ abstract class Url
     /**
      * Permanently redirect to the URL associated with state $name.
      *
-     * @param string $name The state name to resolve.
      * @param array $arguments Additional arguments needed to build the URL.
      * @return void
      */
