@@ -15,7 +15,7 @@ class Regex extends Url
         return null;
     }
 
-    public function generateAbsolute(array $arguments = [])
+    public function generate(array $arguments = [])
     {
         $url = $this->url;
         // For all arguments, map the values back into the URL:
