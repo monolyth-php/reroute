@@ -1,6 +1,7 @@
 <?php
 
 use Reroute\Router;
+use Reroute\Url\Flat;
 
 class StateTest extends PHPUnit_Framework_TestCase
 {
@@ -8,7 +9,7 @@ class StateTest extends PHPUnit_Framework_TestCase
     {
         $router = new Router;
         $router->group('foo', function ($router) {
-            $router->state('bar', '/', function() {});
+            $router->state('bar', new Flat('/'), function() {});
         });
         $state = $router->resolve('/');
         $this->assertEquals('foo', $state->group());
