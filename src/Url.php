@@ -5,12 +5,14 @@ namespace Reroute;
 abstract class Url
 {
     protected $url;
+    protected $verbs;
 
     public abstract function match($url);
 
-    public function __construct($url)
+    public function __construct($url, array $verbs = ['GET'])
     {
         $this->url = $url;
+        $this->verbs = $verbs;
     }
 
     public function prefix($prefix)
@@ -26,10 +28,6 @@ abstract class Url
 
     protected function full($url)
     {
-        $verb = ':GET';
-        if (preg_match("@:([()|A-Z]+)$@", $url)) {
-            $verb = '';
-        }
         $parts = parse_url($url);
         if (!isset($parts['scheme'], $parts['host'])) {
             $url = sprintf(
@@ -40,7 +38,7 @@ abstract class Url
                 $url
             );
         }
-        return $url.$verb;
+        return $url;
     } 
 }
 
