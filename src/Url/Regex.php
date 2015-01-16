@@ -12,7 +12,15 @@ class Regex extends Url
             && in_array($method, $this->verbs)
         ) {
             unset($matches[0]);
-            return $matches;
+            $found = [];
+            foreach ($matches as $key => $match) {
+                if (is_numeric($key)) {
+                    $found[] = $match;
+                } else {
+                    $found[$key] = $match;
+                }
+            }
+            return $found;
         }
         return null;
     }
