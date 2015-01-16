@@ -105,31 +105,30 @@ Generating URLs
 In your views or templates, you should refrain from hardcoding URLs to states
 managed by reroute, since changing a URL would involve changing ALL your views.
 
-Instead, make sure the template has access to the $router you defined earlier
-and call the Router::url method:
+Instead, make sure the template has access to the $router you defined earlier.
+Get a state by name and then generate a URL:
 
-    <a href="<?=$router->url('home')?>">Back to home page</a>
-    <a href="<?=$router->url('user', ['id' => 42])?>">Go to user 42</a>
+    <a href="<?=$router->get('home')->url()->generate()?>">Back to home page</a>
+    <a href="<?=$router->get('user')->url()->generate(['id' => 42])?>">Go to user 42</a>
 
 Redirecting
 -----------
 
-The same goes for redirects. Use the Router::redirect method:
+The same goes for redirects. Use either `Url::redirect` or `Url::move`:
 
     <?php
 
     // Redirect to home needed...
-    $router->redirect('home');
+    $router->get('home')->url()->redirect();
 
-The goto method is a pretty dumb redirector; it issues a 302 header and halts
+The redirect method is a pretty dumb redirector; it issues a 302 header and halts
 your script. For more advanced handling, you might want to throw a custom
 exception and handle the redirect in a catch block, as described below.
 
-For convenience, the router also offers a move method which does the same,
-only with a 301 header (permanent redirect) instead.
+The move method is similar, only with a 301 (permanent redirect) header.
 
-Both goto and moveto accept optional arguments a state might need ($id, $name,
-etc.).
+Both `redirect` and `move` accept optional arguments a state might need ($id,
+$name, etc.) in the same hashtable format as `Url::generate` does.
 
 By design, only GET states can be redirected to, since one cannot redirect a
 POST anyway. A common use (and in fact best practice) would be to redirect to
