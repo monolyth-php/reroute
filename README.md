@@ -12,15 +12,13 @@ Installation
 ###Installation using Composer###
 
 1. Add a requirement to "monomelodies/reroute" to your `composer.json`;
-2. Add Reroute to the autoload hash:
-
+2. Add Reroute to the autoload:psr-4 hash:
     "autoload": {
         "psr-4": {
             "Reroute": "src"
         }
     }
-
-2. Run `composer install`
+3. Run `composer install`
 
 Defining routes
 ---------------
