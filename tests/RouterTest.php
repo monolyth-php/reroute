@@ -62,26 +62,6 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $this->assertInstanceOf('Reroute\State', $state);
     }
 
-    public function testGenerateUrl()
-    {
-        $router = new Router;
-        $router->state('home', new Flat('/'), function() {});
-        $url = $router->url('home');
-        $this->assertEquals('http://localhost/', $url);
-    }
-
-    public function testGenerateUrlWithParameters()
-    {
-        $router = new Router;
-        $router->state(
-            'params',
-            new Regex("/(?'first'\w+)/(?'last'\w+)/"),
-            function($last, $first) {}
-        );
-        $url = $router->url('params', ['first' => 'john', 'last' => 'doe']);
-        $this->assertEquals('http://localhost/john/doe/', $url);
-    }
-
     public function testInvalidStateThrowsException()
     {
         $router = new Router;
