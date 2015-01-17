@@ -83,7 +83,7 @@ URL class. For Regex URLs, it simply follows PHP regex syntax:
     "/(?'paramName':regex)/"
 
 Note that the order in which they are passed to your callback is not important;
-the reroute\State figures that out for itself.
+the Reroute\State figures that out for itself.
 
     <?php
 
