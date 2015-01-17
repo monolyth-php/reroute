@@ -5,6 +5,8 @@ use Reroute\Url\Flat;
 use Reroute\Url\Regex;
 use Reroute\Url\Legacy;
 use Reroute\Url\Angular;
+use Reroute\Url\Braces;
+use Reroute\Url\Nomatch;
 
 class RouterTest extends PHPUnit_Framework_TestCase
 {
@@ -100,6 +102,22 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $router = new Router;
         $router->state('angular', new Angular('/:str/'), function () {});
         $state = $router->resolve('/somestring/');
+        $this->assertInstanceOf('Reroute\State', $state);
+    }
+
+    public function testBraces()
+    {
+        $router = new Router;
+        $router->state('angular', new Braces('/{str}/'), function () {});
+        $state = $router->resolve('/somestring/');
+        $this->assertInstanceOf('Reroute\State', $state);
+    }
+
+    public function testNomatchUrl()
+    {
+        $router = new Router;
+        $router->state('404', new Nomatch, function() {});
+        $state = $router->get('404');
         $this->assertInstanceOf('Reroute\State', $state);
     }
 }
