@@ -4,6 +4,7 @@ use Reroute\Router;
 use Reroute\Url\Flat;
 use Reroute\Url\Regex;
 use Reroute\Url\Legacy;
+use Reroute\Url\Angular;
 
 class UrlTest extends PHPUnit_Framework_TestCase
 {
@@ -46,6 +47,24 @@ class UrlTest extends PHPUnit_Framework_TestCase
         ]);
         $this->assertEquals(
             'http://localhost/string/42/3.14/ev/ry/thing/',
+            $url
+        );
+    }
+
+    public function testGenerateAngularUrl()
+    {
+        $router = new Router;
+        $router->state(
+            'angular',
+            new Angular("/angular/:p1/:p2/"),
+            function () {}
+        );
+        $url = $router->get('angular')->url()->generate([
+            'p1' => 'is',
+            'p2' => 'supported',
+        ]);
+        $this->assertEquals(
+            'http://localhost/angular/is/supported/',
             $url
         );
     }
