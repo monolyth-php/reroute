@@ -95,16 +95,23 @@ the Reroute\State figures that out for itself.
         }
     );
 
+###Nested matches###
+
+Nesting matches (e.g. a URL containing both `{brace}`-style parameters and
+`:angular`-style parameters) is not supported natively. However, writing a
+custom URL class supporting multiple patterns should be trivial based on the
+source code.
+
 Resolving routes
 ----------------
 
 In whatever serves as your "front controller", after state definition, attempt
 to resolve it:
 
-<?php
+    <?php
 
-$state = $router->resolve($_SERVER['REQUEST_URI']);
-$state->run();
+    $state = $router->resolve($_SERVER['REQUEST_URI']);
+    $state->run();
 
 Generating URLs
 ---------------
