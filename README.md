@@ -63,6 +63,7 @@ ReRoute comes with a few bundled Url classes:
 - Reroute\Url\Regex, for full regex matching and maximum flexibility;
 - Reroute\Url\Legacy, for legacy Monolyth applications;
 - Reroute\Url\Angular, for AngularJS-style URL definitions;
+- Reroute\Url\Braces, for {braced} parameters.
 
 For full documentation, see the associated pages; for this readme we will
 use the modern Regex handler.
@@ -191,8 +192,10 @@ can always hide exceptions from end users, throw exceptions from states etc.:
         $router->get('404')->run();
     } catch (SomeOtherException) {
         // ...handle accordingly...
+        $router->get('someOtherState')->run();
     } catch (Exception) {
         // Something went REALLY unexpectedly wrong...
+        $router->get('500')->run();
     }
 
 Reroute does not come bundled with these exceptions, since it's a router and
