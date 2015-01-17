@@ -175,8 +175,6 @@ can always hide exceptions from end users, throw exceptions from states etc.:
 
     <?php
     
-    use Reroute\HTTP404Exception;
-
     try {
         if (!($state = $router->resolve($_SERVER['REQUEST_URI']))) {
             throw new HTTP404Exception;
@@ -190,5 +188,6 @@ can always hide exceptions from end users, throw exceptions from states etc.:
         // Something went REALLY unexpectedly wrong...
     }
 
-For convenience, reroute comes packaged with HTTPxxxExceptions for most common
-responses.
+Reroute does not come bundled with these exceptions, since it's a router and
+not an HTTP library, and besides we don't want to force anyone to use _our_
+custom exceptions when handling their states.
