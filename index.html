@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <title>Reroute by monomelodies</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>Reroute</h1>
+        <h2>Flexible PHP5 HTTP router</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/monomelodies/reroute/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/monomelodies/reroute/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/monomelodies/reroute" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h1>
+<a id="reroute" class="anchor" href="#reroute" aria-hidden="true"><span class="octicon octicon-link"></span></a>reroute</h1>
+
+<p>Flexible PHP5 HTTP router</p>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<h3>
+<a id="composer-recommended" class="anchor" href="#composer-recommended" aria-hidden="true"><span class="octicon octicon-link"></span></a>Composer (recommended)</h3>
+
+<ol>
+<li>Add a requirement to "monomelodies/reroute" to your <code>composer.json</code>;</li>
+<li>Run <code>composer install</code>.</li>
+</ol>
+
+<h3>
+<a id="cloning-with-git" class="anchor" href="#cloning-with-git" aria-hidden="true"><span class="octicon octicon-link"></span></a>Cloning with Git</h3>
+
+<ol>
+<li>Clone the repository;</li>
+<li>Include the files you'll need, or register <code>/path/to/reroute/src</code> in a
+PSR-4 autoloader.</li>
+</ol>
+
+<h3>
+<a id="manual-download" class="anchor" href="#manual-download" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manual download</h3>
+
+<ol>
+<li>Download the repository;</li>
+<li>Unpack to a location of your choice;</li>
+<li>Include the files you'll need, or register <code>/path/to/reroute/src</code> in a
+PSR-4 autoloader.</li>
+</ol>
+
+<h2>
+<a id="defining-routes" class="anchor" href="#defining-routes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Defining routes</h2>
+
+<h3>
+<a id="the-basics" class="anchor" href="#the-basics" aria-hidden="true"><span class="octicon octicon-link"></span></a>The basics</h3>
+
+<p>To match a route (a URI endpoint) to a state:</p>
+
+<pre><code>&lt;?php
+
+use Reroute\Router;
+use Reroute\Url\Flat;
+
+$router = new Router;
+$router-&gt;state('home', new Flat('/'), function() {
+    echo 'Hello world!';
+});
+$state = $router-&gt;resolve($_SERVER['REQUEST_URI']);
+$state-&gt;run();
+</code></pre>
+
+<p>The second argument $verbs to a Url constructor defaults to ['GET'], since
+that is the most common use case in web applications.</p>
+
+<h3>
+<a id="matching-multiple-http-verbs" class="anchor" href="#matching-multiple-http-verbs" aria-hidden="true"><span class="octicon octicon-link"></span></a>Matching multiple HTTP verbs</h3>
+
+<pre><code>&lt;?php
+
+$router-&gt;state('home', new Flat('/', ['GET', 'POST']), function($verb) {
+    // ...
+});
+</code></pre>
+
+<h2>
+<a id="using-parameters" class="anchor" href="#using-parameters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Using parameters</h2>
+
+<p>Of course, ReRoute supports parameters in URLs (it wouldn't be particularly
+useful otherwise). In order to use parameters, you must tell your router how
+to handle them by passing one of the other URL classes.</p>
+
+<p>ReRoute comes with a few bundled Url classes:</p>
+
+<ul>
+<li>Reroute\Url\Flat, for simple URLs without parameters;</li>
+<li>Reroute\Url\Regex, for full regex matching and maximum flexibility;</li>
+<li>Reroute\Url\Legacy, for legacy Monolyth applications;</li>
+<li>Reroute\Url\Angular, for AngularJS-style URL definitions;</li>
+<li>Reroute\Url\Braces, for {braced} parameters.</li>
+</ul>
+
+<p>For full documentation, see the associated pages; for this readme we will
+use the modern Regex handler.</p>
+
+<pre><code>&lt;?php
+
+use Reroute\Url\Regex;
+
+$router-&gt;state('user', new Regex('/(\d+)/'), function($id) {
+    // ...
+});
+</code></pre>
+
+<h3>
+<a id="named-parameters" class="anchor" href="#named-parameters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Named parameters</h3>
+
+<p>You can specify parameters with a name. The exact syntax depends on your chosen
+URL class. For Regex URLs, it simply follows PHP regex syntax:</p>
+
+<pre><code>"/(?'paramName':regex)/"
+</code></pre>
+
+<p>Note that the order in which they are passed to your callback is not important;
+the Reroute\State figures that out for itself.</p>
+
+<pre><code>&lt;?php
+
+$router-&gt;state(
+    'user',
+    new Regex("/(?'firstname':\s+)/(?'lastname':\s+)/", ['GET', 'POST']),
+    function($verb, $lastname, $firstname) {
+        // ...
+    }
+);
+</code></pre>
+
+<h3>
+<a id="nested-matches" class="anchor" href="#nested-matches" aria-hidden="true"><span class="octicon octicon-link"></span></a>Nested matches</h3>
+
+<p>Nesting matches (e.g. a URL containing both <code>{brace}</code>-style parameters and
+<code>:angular</code>-style parameters) is not supported natively. However, writing a
+custom URL class supporting multiple patterns should be trivial based on the
+source code.</p>
+
+<h2>
+<a id="resolving-routes" class="anchor" href="#resolving-routes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Resolving routes</h2>
+
+<p>In whatever serves as your "front controller", after state definition, attempt
+to resolve it:</p>
+
+<pre><code>&lt;?php
+
+$state = $router-&gt;resolve($_SERVER['REQUEST_URI']);
+$state-&gt;run();
+</code></pre>
+
+<h2>
+<a id="generating-urls" class="anchor" href="#generating-urls" aria-hidden="true"><span class="octicon octicon-link"></span></a>Generating URLs</h2>
+
+<p>In your views or templates, you should refrain from hardcoding URLs to states
+managed by reroute, since changing a URL would involve changing ALL your views.</p>
+
+<p>Instead, make sure the template has access to the $router you defined earlier.
+Get a state by name and then generate a URL:</p>
+
+<pre><code>&lt;a href="&lt;?=$router-&gt;get('home')-&gt;url()-&gt;generate()?&gt;"&gt;Back to home page&lt;/a&gt;
+&lt;a href="&lt;?=$router-&gt;get('user')-&gt;url()-&gt;generate(['id' =&gt; 42])?&gt;"&gt;Go to user 42&lt;/a&gt;
+</code></pre>
+
+<h2>
+<a id="redirecting" class="anchor" href="#redirecting" aria-hidden="true"><span class="octicon octicon-link"></span></a>Redirecting</h2>
+
+<p>The same goes for redirects. Use either <code>Url::redirect</code> or <code>Url::move</code>:</p>
+
+<pre><code>&lt;?php
+
+// Redirect to home needed...
+$router-&gt;get('home')-&gt;url()-&gt;redirect();
+</code></pre>
+
+<p>The redirect method is a pretty dumb redirector; it issues a 302 header and halts
+your script. For more advanced handling, you might want to throw a custom
+exception and handle the redirect in a catch block, as described below.</p>
+
+<p>The move method is similar, only with a 301 (permanent redirect) header.</p>
+
+<p>Both <code>redirect</code> and <code>move</code> accept optional arguments a state might need ($id,
+$name, etc.) in the same hashtable format as <code>Url::generate</code> does.</p>
+
+<p>By design, only GET states can be redirected to, since one cannot redirect a
+POST anyway. A common use (and in fact best practice) would be to redirect to
+a GET state <em>after</em> a POST was handled, to avoid double posting.</p>
+
+<h2>
+<a id="handling-404s-and-other-errors" class="anchor" href="#handling-404s-and-other-errors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Handling 404s and other errors</h2>
+
+<pre><code>&lt;?php
+
+use Reroute\Url\Nomatch;
+
+// First, define a 404 state:
+$router-&gt;state('404', new Nomatch, function() {
+    echo "The URL did an oopsie!";
+});
+</code></pre>
+
+<p>Since <code>Nomatch</code> will never match any URL, this is a safe placeholder. But you
+could use anything, really, as long as it's not already in use in your
+application.</p>
+
+<p>Next, try to resolve the currently request URI. On failure, use the 404 state
+instead:</p>
+
+<pre><code>&lt;?php
+
+if ($state = $router-&gt;resolve($_SERVER['REQUEST_URI'])) {
+    $state-&gt;run();
+} else {
+    $router-&gt;get('404')-&gt;run();
+}
+</code></pre>
+
+<h3>
+<a id="catching-exceptions" class="anchor" href="#catching-exceptions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Catching exceptions</h3>
+
+<p>A best practice is to wrap your state resolution in a try/catch block, so you
+can always hide exceptions from end users, throw exceptions from states etc.:</p>
+
+<pre><code>&lt;?php
+
+try {
+    if (!($state = $router-&gt;resolve($_SERVER['REQUEST_URI']))) {
+        throw new HTTP404Exception;
+    }
+    $state-&gt;run();
+} catch (HTTP404Exception) {
+    $router-&gt;get('404')-&gt;run();
+} catch (SomeOtherException) {
+    // ...handle accordingly...
+    $router-&gt;get('someOtherState')-&gt;run();
+} catch (Exception) {
+    // Something went REALLY unexpectedly wrong...
+    $router-&gt;get('500')-&gt;run();
+}
+</code></pre>
+
+<p>Reroute does not come bundled with these exceptions, since it's a router and
+not an HTTP library, and besides we don't want to force anyone to use <em>our</em>
+custom exceptions when handling their states.</p>
+      </section>
+    </div>
+
+    
+  </body>
+</html>
