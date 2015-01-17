@@ -49,11 +49,17 @@ abstract class Url
      * Generate the current URL, but keep it as short as possible (i.e., any
      * parts already in the current location can be omitted).
      *
+     * @param string $current The current, full URL to test against.
      * @param array $arguments Additional arguments needed to build the URL.
      */
-    public function short(array $arguments = [])
+    public function short($current, array $arguments = [])
     {
         $url = $this->generate($arguments);
+        $parts = parse_url($current);
+        $current = sprintf('%s://%s/', $parts['scheme'], $parts['host']);
+        if (stripos($url, $current) === 0) {
+            $url = preg_replace("@^$current@i", '/', $url);
+        }
         return $url;
     }
 
