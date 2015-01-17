@@ -26,7 +26,9 @@ class Legacy extends Url
             },
             str_replace('.', '\.', trim($this->url))
         );
-        if (preg_match("@^$newurl$@", $url, $matches)) {
+        if (preg_match("@^$newurl$@", $url, $matches)
+            && in_array($method, $this->verbs)
+        ) {
             unset($matches[0]);
             foreach ($matches as $key => $value) {
                 if (is_numeric($key)) {
