@@ -141,30 +141,5 @@ class Router
         header("Location: ".$this->absolute($name, $arguments), true, 301);
         die();
     }
-
-    /**
-     * Internal helper method to generate a full URL as needed for matching.
-     *
-     * @param string $url The supplied URL we want to match.
-     * @return string A fully regexable URL.
-     */
-    protected function fullUrl($url)
-    {
-        $verb = ':GET';
-        if (preg_match("@:([()|A-Z]+)$@", $url)) {
-            $verb = '';
-        }
-        $parts = parse_url($url);
-        if (!isset($parts['scheme'], $parts['host'])) {
-            $url = sprintf(
-                'http://%s%s',
-                isset($_SERVER['SERVER_NAME']) ?
-                    $_SERVER['SERVER_NAME'] :
-                    'localhost',
-                $url
-            );
-        }
-        return $url.$verb;
-    }
 }
 
