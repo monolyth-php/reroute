@@ -68,5 +68,16 @@ class UrlTest extends PHPUnit_Framework_TestCase
             $url
         );
     }
+
+    public function testGenerateShortUrl()
+    {
+        $router = new Router;
+        $router->state('home', new Flat('http://foo.com/'), function () {});
+        $url = $router->get('home')->url();
+        $here = $url->short('http://foo.com/');
+        $there = $url->short('http://bar.com/');
+        $this->assertEquals('/', $here);
+        $this->assertEquals('http://foo.com/', $there);
+    }
 }
 
