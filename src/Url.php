@@ -10,7 +10,7 @@ abstract class Url
     public abstract function match($url, $method);
     public abstract function generate(array $arguments = []);
 
-    public function __construct($url, array $verbs = ['GET'])
+    public function __construct($url = '/', array $verbs = ['GET'])
     {
         $this->url = $url;
         $this->verbs = $verbs;
