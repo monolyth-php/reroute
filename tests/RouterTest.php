@@ -3,13 +3,17 @@
 use Reroute\Router;
 use Reroute\Url\Flat;
 use Reroute\Url\Regex;
+use Reroute\Url\Legacy;
+use Reroute\Url\Angular;
+use Reroute\Url\Braces;
+use Reroute\Url\Nomatch;
 
 class RouterTest extends PHPUnit_Framework_TestCase
 {
     public function testResolveReturnsState()
     {
         $router = new Router;
-        $router->state('home', new Flat('/'), function() {
+        $router->state('home', new Flat('/'), function () {
             return "Hello world!";
         });
         $state = $router->resolve('/');
@@ -19,7 +23,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testBasicRoute()
     {
         $router = new Router;
-        $router->state('home', new Flat('/'), function() {
+        $router->state('home', new Flat('/'), function () {
             return "Hello world!";
         });
         $state = $router->resolve('/');
@@ -30,7 +34,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testNamedParameter()
     {
         $router = new Router;
-        $router->state('user', new Regex("/(?'id'\d+)/"), function($id) {
+        $router->state('user', new Regex("/(?'id'\d+)/"), function ($id) {
             return $id;
         });
         $state = $router->resolve('/1/');
@@ -44,7 +48,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $router->state(
             'order',
             new Regex("/(?'first'\w+)/(?'last'\w+)/"),
-            function($last, $first) {
+            function ($last, $first) {
                 return compact('last', 'first');
             }
         );
@@ -57,7 +61,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testIgnoreGetParameters()
     {
         $router = new Router;
-        $router->state('home', new Flat('/'), function() {});
+        $router->state('home', new Flat('/'), function () {});
         $state = $router->resolve('/?foo=bar');
         $this->assertInstanceOf('Reroute\State', $state);
     }
@@ -82,6 +86,38 @@ class RouterTest extends PHPUnit_Framework_TestCase
             $router->state('bar', new Flat('/bar/'), function () {});
         });
         $state = $router->resolve('/foo/bar/');
+        $this->assertInstanceOf('Reroute\State', $state);
+    }
+
+    public function testLegacy()
+    {
+        $router = new Router;
+        $router->state('legacy', new Legacy('/(%s:str)/'), function () {});
+        $state = $router->resolve('/somestring/');
+        $this->assertInstanceOf('Reroute\State', $state);
+    }
+
+    public function testAngular()
+    {
+        $router = new Router;
+        $router->state('angular', new Angular('/:str/'), function () {});
+        $state = $router->resolve('/somestring/');
+        $this->assertInstanceOf('Reroute\State', $state);
+    }
+
+    public function testBraces()
+    {
+        $router = new Router;
+        $router->state('angular', new Braces('/{str}/'), function () {});
+        $state = $router->resolve('/somestring/');
+        $this->assertInstanceOf('Reroute\State', $state);
+    }
+
+    public function testNomatchUrl()
+    {
+        $router = new Router;
+        $router->state('404', new Nomatch, function() {});
+        $state = $router->get('404');
         $this->assertInstanceOf('Reroute\State', $state);
     }
 }

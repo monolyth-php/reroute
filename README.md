@@ -63,6 +63,7 @@ ReRoute comes with a few bundled Url classes:
 - Reroute\Url\Regex, for full regex matching and maximum flexibility;
 - Reroute\Url\Legacy, for legacy Monolyth applications;
 - Reroute\Url\Angular, for AngularJS-style URL definitions;
+- Reroute\Url\Braces, for {braced} parameters.
 
 For full documentation, see the associated pages; for this readme we will
 use the modern Regex handler.
@@ -83,7 +84,7 @@ URL class. For Regex URLs, it simply follows PHP regex syntax:
     "/(?'paramName':regex)/"
 
 Note that the order in which they are passed to your callback is not important;
-the reroute\State figures that out for itself.
+the Reroute\State figures that out for itself.
 
     <?php
 
@@ -95,16 +96,23 @@ the reroute\State figures that out for itself.
         }
     );
 
+###Nested matches###
+
+Nesting matches (e.g. a URL containing both `{brace}`-style parameters and
+`:angular`-style parameters) is not supported natively. However, writing a
+custom URL class supporting multiple patterns should be trivial based on the
+source code.
+
 Resolving routes
 ----------------
 
 In whatever serves as your "front controller", after state definition, attempt
 to resolve it:
 
-<?php
+    <?php
 
-$state = $router->resolve($_SERVER['REQUEST_URI']);
-$state->run();
+    $state = $router->resolve($_SERVER['REQUEST_URI']);
+    $state->run();
 
 Generating URLs
 ---------------
@@ -175,8 +183,6 @@ can always hide exceptions from end users, throw exceptions from states etc.:
 
     <?php
     
-    use Reroute\HTTP404Exception;
-
     try {
         if (!($state = $router->resolve($_SERVER['REQUEST_URI']))) {
             throw new HTTP404Exception;
@@ -186,9 +192,12 @@ can always hide exceptions from end users, throw exceptions from states etc.:
         $router->get('404')->run();
     } catch (SomeOtherException) {
         // ...handle accordingly...
+        $router->get('someOtherState')->run();
     } catch (Exception) {
         // Something went REALLY unexpectedly wrong...
+        $router->get('500')->run();
     }
 
-For convenience, reroute comes packaged with HTTPxxxExceptions for most common
-responses.
+Reroute does not come bundled with these exceptions, since it's a router and
+not an HTTP library, and besides we don't want to force anyone to use _our_
+custom exceptions when handling their states.
