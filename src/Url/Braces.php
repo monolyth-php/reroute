@@ -14,15 +14,9 @@ class Braces extends Url
      */
     public function match($url, $method)
     {
-        $try = $this->url;
-        $oldmatches = [];
-        if ($try instanceof Url) {
-            $oldmatches = $try->match($url, $method);
-        }
-        $try = preg_replace('@{(\w+)}@', '(\w+)', $try);
+        $try = preg_replace('@{(\w+)}@', '(\w+)', $this->url);
         if (preg_match("@^$try$@", $url, $matches)) {
             unset($matches[0]);
-            $matches = array_merge($oldmatches, $matches);
             foreach ($matches as $key => $value) {
                 if (is_numeric($key)) {
                     unset($matches[$key]);
@@ -43,9 +37,7 @@ class Braces extends Url
             function ($match) use ($arguments) {
                 return $arguments[$match[1]];
             },
-            $this->url instanceof Url ?
-                $this->url->generate($arguments) :
-                $this->url
+            $this->url
         ));
     }
 }
