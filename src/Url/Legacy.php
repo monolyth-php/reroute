@@ -17,7 +17,6 @@ class Legacy extends Url
         $newurl = preg_replace_callback(
             '@\((%[0-9\.]{0,}[asdf]):(\w+)\)@',
             function ($matches) {
-                var_dump($matches);
                 switch (substr($matches[1], -1)) {
                     case 's': return "(?'{$matches[2]}'[^/]+?)";
                     case 'd': return "(?'{$matches[2]}'\d+?)";
