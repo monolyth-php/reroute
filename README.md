@@ -1,26 +1,34 @@
 # reroute
-Flexible PHP5 HTTP router
+Flexible PHP5 HTTP router, with support for various types of URL matching,
+URL arguments, custom state handling and URL generation. Reroute is designed
+to be usable in any type of project or framework.
 
 Installation
 ------------
 
 ###Composer (recommended)###
 
-1. Add a requirement to "monomelodies/reroute" to your `composer.json`;
-2. Run `composer install`.
+1. Add "monomelodies/reroute" to your `composer.json` requirements:
+    ```
+    {
+        "require": {
+            "monomelodies/reroute": ">=0.4"
+        }
+    }
+    ```
+2. Run `composer install` or `composer update`.
 
 ###Cloning with Git###
 
 1. Clone the repository;
-2. Include the files you'll need, or register `/path/to/reroute/src` in a
-   PSR-4 autoloader.
+2. Make your project recognize Reroute:
+    2.1. Register `/path/to/reroute/src` for the namespace `Reroute\\` in your
+        PSR-4 autoloader (recommended);
+    2.2. Alternatively, manually `include` the files you need.
 
 ###Manual download###
 
-1. Download the repository;
-2. Unpack to a location of your choice;
-2. Include the files you'll need, or register `/path/to/reroute/src` in a
-   PSR-4 autoloader.
+Same as for Git, but replace step 1. with manual download and extraction.
 
 Defining routes
 ---------------
@@ -41,14 +49,14 @@ To match a route (a URI endpoint) to a state:
     $state = $router->resolve($_SERVER['REQUEST_URI']);
     $state->run();
 
-The second argument $verbs to a Url constructor defaults to ['GET'], since
-that is the most common use case in web applications.
+The second argument `$verbs` to a [Url constructor](docs/url.md) defaults to
+`['GET']`, since that is the most common use case in web applications.
 
 ###Matching multiple HTTP verbs###
 
     <?php
 
-    $router->state('home', new Flat('/', ['GET', 'POST']), function($verb) {
+    $router->state('home', new Flat('/', ['GET', 'POST']), function() {
         // ...
     });
 
@@ -59,16 +67,16 @@ Of course, ReRoute supports parameters in URLs (it wouldn't be particularly
 useful otherwise). In order to use parameters, you must tell your router how
 to handle them by passing one of the other URL classes.
 
-ReRoute comes with a few bundled Url classes:
+ReRoute comes with a few bundled `Url` classes:
 
-- Reroute\Url\Flat, for simple URLs without parameters;
-- Reroute\Url\Regex, for full regex matching and maximum flexibility;
-- Reroute\Url\Legacy, for legacy Monolyth applications;
-- Reroute\Url\Angular, for AngularJS-style URL definitions;
-- Reroute\Url\Braces, for {braced} parameters.
+- [Reroute\Url\Flat](docs/url/flat.md), for simple URLs without parameters;
+- [Reroute\Url\Regex](docs/url/regex.md), for full regex matching and maximum flexibility;
+- [Reroute\Url\Legacy](docs/url/legacy.md), for legacy Monolyth applications;
+- [Reroute\Url\Angular](docs/url/angular.md), for AngularJS-style URL definitions;
+- [Reroute\Url\Braces](docs/url/braces.md), for {braced} parameters.
 
-For full documentation, see the associated pages; for this readme we will
-use the modern Regex handler.
+For full documentation, see [the associated pages](docs/url.md5); for this
+readme we will use the modern [Regex handler](docs/url/regex.md).
 
     <?php
 
@@ -93,17 +101,10 @@ the Reroute\State figures that out for itself.
     $router->state(
         'user',
         new Regex("/(?'firstname':\s+)/(?'lastname':\s+)/", ['GET', 'POST']),
-        function($verb, $lastname, $firstname) {
+        function($lastname, $firstname) {
             // ...
         }
     );
-
-###Nested matches###
-
-Nesting matches (e.g. a URL containing both `{brace}`-style parameters and
-`:angular`-style parameters) is not supported natively. However, writing a
-custom URL class supporting multiple patterns should be trivial based on the
-source code.
 
 Resolving routes
 ----------------
@@ -138,18 +139,18 @@ The same goes for redirects. Use either `Url::redirect` or `Url::move`:
     // Redirect to home needed...
     $router->get('home')->url()->redirect();
 
-The redirect method is a pretty dumb redirector; it issues a 302 header and halts
-your script. For more advanced handling, you might want to throw a custom
+The `redirect` method is a pretty dumb redirector; it issues a 302 header and
+halts your script. For more advanced handling, you might want to throw a custom
 exception and handle the redirect in a catch block, as described below.
 
-The move method is similar, only with a 301 (permanent redirect) header.
+The `move` method is similar, only with a 301 (permanent redirect) header.
 
-Both `redirect` and `move` accept optional arguments a state might need ($id,
-$name, etc.) in the same hashtable format as `Url::generate` does.
+Both `redirect` and `move` accept an optional argument with parameters a state
+might need ($id, $name, etc.) in the same hashtable format as `Url::generate`
+does.
 
-By design, only GET states can be redirected to, since one cannot redirect a
-POST anyway. A common use (and in fact best practice) would be to redirect to
-a GET state _after_ a POST was handled, to avoid double posting.
+A URL being redirected to must match the GET HTTP verb. An
+`IllegalRedirectException` will be thrown otherwise.
 
 Handling 404s and other errors
 ------------------------------
