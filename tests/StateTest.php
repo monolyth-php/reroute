@@ -14,5 +14,14 @@ class StateTest extends PHPUnit_Framework_TestCase
         $state = $router->resolve('/');
         $this->assertEquals('foo', $state->group());
     }
+
+    public function testStateVerb()
+    {
+        $router = new Router;
+        $router->state('test', new Flat('/', ['POST']), function() {});
+        $state = $router->resolve('/', 'POST');
+        $this->assertInstanceOf('Reroute\State', $state);
+        $this->assertEquals('POST', $state->verb());
+    }
 }
 
