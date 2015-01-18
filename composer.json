@@ -2,7 +2,7 @@
     "name": "monomelodies/reroute",
     "description": "Extremely flexible PHP5 router",
     "license": "MIT",
-    "keywords": ["php","router"],
+    "keywords": ["php","mvc","router"],
     "authors": [
         {
             "name": "Marijn Ophorst",

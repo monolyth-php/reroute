@@ -71,6 +71,9 @@ abstract class Url
      */
     public function redirect(array $arguments = [])
     {
+        if (!in_array('GET', $this->verbs)) {
+            throw new IllegalRedirectException;
+        }
         header("Location: ".$this->generate($arguments), true, 302);
         die();
     }
@@ -83,6 +86,9 @@ abstract class Url
      */
     public function move(array $arguments = [])
     {
+        if (!in_array('GET', $this->verbs)) {
+            throw new IllegalRedirectException;
+        }
         header("Location: ".$this->generate($arguments), true, 301);
         die();
     }

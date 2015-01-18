@@ -8,6 +8,7 @@ class State
 {
     private $url;
     private $state;
+    private $verb = null;
     private $parameters = [];
     private $arguments = [];
     private $group = null;
@@ -26,11 +27,12 @@ class State
         return $this->group;
     }
 
-    public function match($url, $method)
+    public function match($url, $verb)
     {
-        $arguments = $this->url->match($url, $method);
+        $arguments = $this->url->match($url, $verb);
         if (!is_null($arguments)) {
             $this->arguments = $arguments;
+            $this->verb = $verb;
             return true;
         }
         return false;
@@ -46,6 +48,8 @@ class State
                 $arguments[] = $this->arguments[$value->name];
             } elseif (isset($this->arguments[$key])) {
                 $arguments[] = $this->arguments[$key];
+            } elseif ($value->name == 'VERB') {
+                $arguments[] = $this->verb;
             } else {
                 throw new BadMethodCallException;
             }
@@ -55,6 +59,11 @@ class State
             $call = call_user_func_array($call, $arguments);
         }
         return $call;
+    }
+
+    public function verb()
+    {
+        return $this->verb;
     }
 
     public function url()
