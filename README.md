@@ -3,10 +3,9 @@ Flexible PHP5 HTTP router, with support for various types of URL matching,
 URL arguments, custom state handling and URL generation. Reroute is designed
 to be usable in any type of project or framework.
 
-Installation
-------------
+## Installation
 
-###Composer (recommended)###
+### Composer (recommended)
 
 Add "monomelodies/reroute" to your `composer.json` requirements:
 
@@ -16,7 +15,7 @@ Add "monomelodies/reroute" to your `composer.json` requirements:
         }
     }
 
-###Manual installation###
+### Manual installation
 
 1. Get the code;
     1.1. Clone the repository, e.g. from GitHub;
@@ -26,10 +25,9 @@ Add "monomelodies/reroute" to your `composer.json` requirements:
         PSR-4 autoloader (recommended);
     2.2. Alternatively, manually `include` the files you need.
 
-Defining routes
----------------
+## Defining routes
 
-###The basics###
+### The basics
 
 Define a route:
 
@@ -47,16 +45,22 @@ To match a route (a URI endpoint) to a state:
     $state = $router->resolve('/example/');
     $state->run();
 
-###Matching multiple HTTP verbs###
+### Matching multiple HTTP verbs
+
+The special `$VERB` parameter gets filled with the HTTP verb used for this
+resolved request.
 
     <?php
 
-    $router->state('home', new Flat('/', ['GET', 'POST']), function() {
-        // ...
+    $router->state('home', new Flat('/', ['GET', 'POST']), function($VERB) {
+        if ($VERB == 'GET') {
+            // ...
+        } elseif ($VERB == 'POST') {
+            // ...
+        }
     });
 
-Using parameters
-----------------
+## Using parameters
 
 Use one of the URL types (other than `Flat` and `Nomatch`) to match parameters
 in a URL, for instance:
@@ -67,7 +71,7 @@ in a URL, for instance:
         echo "User $id";
     });
 
-###Named parameters###
+### Named parameters
 
 You can specify parameters with a name. The exact syntax depends on your chosen
 URL class. For Regex URLs, it simply follows PHP regex syntax:
@@ -87,8 +91,7 @@ the Reroute\State figures that out for itself.
         }
     );
 
-Generating URLs
----------------
+## Generating URLs
 
 Make sure your view or template has access to the $router you defined earlier.
 Get a state by name and then generate a URL:
@@ -98,8 +101,7 @@ Get a state by name and then generate a URL:
     echo 'URL to home page: '.$router->get('home')->url()->generate();
     echo 'URL to user #42: '.$router->get('user')->url()->generate(['id' => 42]);
 
-Redirecting
------------
+## Redirecting
 
 Reroute URLs support simple `301` or `302` redirects:
 
@@ -113,8 +115,7 @@ Reroute URLs support simple `301` or `302` redirects:
 A URL being redirected to must match the GET HTTP verb associated with the
 state. An `IllegalRedirectException` will be thrown otherwise.
 
-Handling 404s and other errors
-------------------------------
+## Handling 404s and other errors
 
     <?php
 
