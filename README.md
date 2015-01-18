@@ -49,7 +49,7 @@ To match a route (a URI endpoint) to a state:
     $state = $router->resolve($_SERVER['REQUEST_URI']);
     $state->run();
 
-The second argument `$verbs` to a [Url constructor](docs/url.md) defaults to
+The second argument `$verbs` to a [Url constructor](url) defaults to
 `['GET']`, since that is the most common use case in web applications.
 
 ###Matching multiple HTTP verbs###
@@ -69,14 +69,14 @@ to handle them by passing one of the other URL classes.
 
 ReRoute comes with a few bundled `Url` classes:
 
-- [Reroute\Url\Flat](docs/url/flat.md), for simple URLs without parameters;
-- [Reroute\Url\Regex](docs/url/regex.md), for full regex matching and maximum flexibility;
-- [Reroute\Url\Legacy](docs/url/legacy.md), for legacy Monolyth applications;
-- [Reroute\Url\Angular](docs/url/angular.md), for AngularJS-style URL definitions;
-- [Reroute\Url\Braces](docs/url/braces.md), for {braced} parameters.
+- [Reroute\Url\Flat](url#flat), for simple URLs without parameters;
+- [Reroute\Url\Regex](url#regex), for full regex matching and maximum flexibility;
+- [Reroute\Url\Legacy](url#legacy), for legacy Monolyth applications;
+- [Reroute\Url\Angular](url#angular), for AngularJS-style URL definitions;
+- [Reroute\Url\Braces](url#braces), for {braced} parameters.
 
-For full documentation, see [the associated pages](docs/url.md5); for this
-readme we will use the modern [Regex handler](docs/url/regex.md).
+For full documentation, see [the associated pages](url); for this
+readme we will use the modern [Regex handler](url#regex).
 
     <?php
 
