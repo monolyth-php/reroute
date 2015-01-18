@@ -3,6 +3,9 @@ Flexible PHP5 HTTP router, with support for various types of URL matching,
 URL arguments, custom state handling and URL generation. Reroute is designed
 to be usable in any type of project or framework.
 
+Homepage: http://monomelodies.github.io/reroute/
+Full documentation: http://reroute.readthedocs.org/en/latest/
+
 ## Installation
 
 ### Composer (recommended)
