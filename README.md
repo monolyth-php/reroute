@@ -1,84 +1,80 @@
-# reroute
-Flexible PHP5 HTTP router
+# Reroute
+Flexible PHP5 HTTP router, with support for various types of URL matching,
+URL arguments, custom state handling and URL generation. Reroute is designed
+to be usable in any type of project or framework.
 
-Installation
-------------
+Homepage: http://monomelodies.github.io/reroute/
+Full documentation: http://reroute.readthedocs.org/en/latest/
 
-###Composer (recommended)###
+## Installation
 
-1. Add a requirement to "monomelodies/reroute" to your `composer.json`;
-2. Run `composer install`.
+### Composer (recommended)
 
-###Cloning with Git###
+Add "monomelodies/reroute" to your `composer.json` requirements:
 
-1. Clone the repository;
-2. Include the files you'll need, or register `/path/to/reroute/src` in a
-   PSR-4 autoloader.
+    {
+        "require": {
+            "monomelodies/reroute": ">=0.4"
+        }
+    }
 
-###Manual download###
+### Manual installation
 
-1. Download the repository;
-2. Unpack to a location of your choice;
-2. Include the files you'll need, or register `/path/to/reroute/src` in a
-   PSR-4 autoloader.
+1. Get the code;
+    1.1. Clone the repository, e.g. from GitHub;
+    1.2. Download the ZIP (e.g. from Github) and extract.
+2. Make your project recognize Reroute:
+    2.1. Register `/path/to/reroute/src` for the namespace `Reroute\\` in your
+        PSR-4 autoloader (recommended);
+    2.2. Alternatively, manually `include` the files you need.
 
-Defining routes
----------------
+## Defining routes
 
-###The basics###
+### The basics
+
+Define a route:
+
+    <?php
+
+    $router = new Router;
+    $router->state('example', new Flat('/example/'), function() {
+        echo 'Hello world!';
+    });
 
 To match a route (a URI endpoint) to a state:
 
     <?php
 
-    use Reroute\Router;
-    use Reroute\Url\Flat;
-
-    $router = new Router;
-    $router->state('home', new Flat('/'), function() {
-        echo 'Hello world!';
-    });
-    $state = $router->resolve($_SERVER['REQUEST_URI']);
+    $state = $router->resolve('/example/');
     $state->run();
 
-The second argument $verbs to a Url constructor defaults to ['GET'], since
-that is the most common use case in web applications.
+### Matching multiple HTTP verbs
 
-###Matching multiple HTTP verbs###
+The special `$VERB` parameter gets filled with the HTTP verb used for this
+resolved request.
 
     <?php
 
-    $router->state('home', new Flat('/', ['GET', 'POST']), function($verb) {
-        // ...
+    $router->state('home', new Flat('/', ['GET', 'POST']), function($VERB) {
+        if ($VERB == 'GET') {
+            // ...
+        } elseif ($VERB == 'POST') {
+            // ...
+        }
     });
 
-Using parameters
-----------------
+## Using parameters
 
-Of course, ReRoute supports parameters in URLs (it wouldn't be particularly
-useful otherwise). In order to use parameters, you must tell your router how
-to handle them by passing one of the other URL classes.
-
-ReRoute comes with a few bundled Url classes:
-
-- Reroute\Url\Flat, for simple URLs without parameters;
-- Reroute\Url\Regex, for full regex matching and maximum flexibility;
-- Reroute\Url\Legacy, for legacy Monolyth applications;
-- Reroute\Url\Angular, for AngularJS-style URL definitions;
-- Reroute\Url\Braces, for {braced} parameters.
-
-For full documentation, see the associated pages; for this readme we will
-use the modern Regex handler.
+Use one of the URL types (other than `Flat` and `Nomatch`) to match parameters
+in a URL, for instance:
 
     <?php
-
-    use Reroute\Url\Regex;
 
     $router->state('user', new Regex('/(\d+)/'), function($id) {
-        // ...
+        echo "User $id";
     });
 
-###Named parameters###
+### Named parameters
 
 You can specify parameters with a name. The exact syntax depends on your chosen
 URL class. For Regex URLs, it simply follows PHP regex syntax:
@@ -93,72 +89,39 @@ the Reroute\State figures that out for itself.
     $router->state(
         'user',
         new Regex("/(?'firstname':\s+)/(?'lastname':\s+)/", ['GET', 'POST']),
-        function($verb, $lastname, $firstname) {
+        function($lastname, $firstname) {
             // ...
         }
     );
 
-###Nested matches###
+## Generating URLs
 
-Nesting matches (e.g. a URL containing both `{brace}`-style parameters and
-`:angular`-style parameters) is not supported natively. However, writing a
-custom URL class supporting multiple patterns should be trivial based on the
-source code.
-
-Resolving routes
-----------------
-
-In whatever serves as your "front controller", after state definition, attempt
-to resolve it:
-
-    <?php
-
-    $state = $router->resolve($_SERVER['REQUEST_URI']);
-    $state->run();
-
-Generating URLs
----------------
-
-In your views or templates, you should refrain from hardcoding URLs to states
-managed by reroute, since changing a URL would involve changing ALL your views.
-
-Instead, make sure the template has access to the $router you defined earlier.
+Make sure your view or template has access to the $router you defined earlier.
 Get a state by name and then generate a URL:
 
-    <a href="<?=$router->get('home')->url()->generate()?>">Back to home page</a>
-    <a href="<?=$router->get('user')->url()->generate(['id' => 42])?>">Go to user 42</a>
+    <?php
 
-Redirecting
------------
+    echo 'URL to home page: '.$router->get('home')->url()->generate();
+    echo 'URL to user #42: '.$router->get('user')->url()->generate(['id' => 42]);
 
-The same goes for redirects. Use either `Url::redirect` or `Url::move`:
+## Redirecting
+
+Reroute URLs support simple `301` or `302` redirects:
 
     <?php
 
-    // Redirect to home needed...
+    // Temporarily redirect to state "home":
     $router->get('home')->url()->redirect();
+    // Permanently redirect to state "example":
+    $router->get('example')->url()->move();
 
-The redirect method is a pretty dumb redirector; it issues a 302 header and halts
-your script. For more advanced handling, you might want to throw a custom
-exception and handle the redirect in a catch block, as described below.
+A URL being redirected to must match the GET HTTP verb associated with the
+state. An `IllegalRedirectException` will be thrown otherwise.
 
-The move method is similar, only with a 301 (permanent redirect) header.
-
-Both `redirect` and `move` accept optional arguments a state might need ($id,
-$name, etc.) in the same hashtable format as `Url::generate` does.
-
-By design, only GET states can be redirected to, since one cannot redirect a
-POST anyway. A common use (and in fact best practice) would be to redirect to
-a GET state _after_ a POST was handled, to avoid double posting.
-
-Handling 404s and other errors
-------------------------------
+## Handling 404s and other errors
 
     <?php
 
-    use Reroute\Url\Nomatch;
-
-    // First, define a 404 state:
     $router->state('404', new Nomatch, function() {
         echo "The URL did an oopsie!";
     });
@@ -167,7 +130,7 @@ Since `Nomatch` will never match any URL, this is a safe placeholder. But you
 could use anything, really, as long as it's not already in use in your
 application.
 
-Next, try to resolve the currently request URI. On failure, use the 404 state
+Next, try to resolve the currently requested URI. On failure, use the 404 state
 instead:
 
     <?php
@@ -178,28 +141,5 @@ instead:
         $router->get('404')->run();
     }
 
-###Catching exceptions###
-
-A best practice is to wrap your state resolution in a try/catch block, so you
-can always hide exceptions from end users, throw exceptions from states etc.:
-
-    <?php
-    
-    try {
-        if (!($state = $router->resolve($_SERVER['REQUEST_URI']))) {
-            throw new HTTP404Exception;
-        }
-        $state->run();
-    } catch (HTTP404Exception) {
-        $router->get('404')->run();
-    } catch (SomeOtherException) {
-        // ...handle accordingly...
-        $router->get('someOtherState')->run();
-    } catch (Exception) {
-        // Something went REALLY unexpectedly wrong...
-        $router->get('500')->run();
-    }
-
-Reroute does not come bundled with these exceptions, since it's a router and
-not an HTTP library, and besides we don't want to force anyone to use _our_
-custom exceptions when handling their states.
+A best practice is to wrap your state resolving in a `try/catch` block, and
+handle any error accordingly.
