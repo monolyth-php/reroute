@@ -115,31 +115,5 @@ class Router
         }
         return $this->states[$name];
     }
-
-    /**
-     * Temporarily redirect to the URL associated with state $name.
-     *
-     * @param string $name The state name to resolve.
-     * @param array $arguments Additional arguments needed to build the URL.
-     * @return void
-     */
-    public function redirect($name, array $arguments = [])
-    {
-        header("Location: ".$this->absolute($name, $arguments), true, 302);
-        die();
-    }
-
-    /**
-     * Permanently redirect to the URL associated with state $name.
-     *
-     * @param string $name The state name to resolve.
-     * @param array $arguments Additional arguments needed to build the URL.
-     * @return void
-     */
-    public function move($name, array $arguments = [])
-    {
-        header("Location: ".$this->absolute($name, $arguments), true, 301);
-        die();
-    }
 }
 
