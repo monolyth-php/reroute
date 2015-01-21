@@ -168,7 +168,7 @@ Since `Nomatch` will never match any URL, this is a safe placeholder. But you
 could use anything, really, as long as it's not already in use in your
 application.
 
-Next, try to resolve the currently request URI. On failure, use the 404 state
+Next, try to resolve the currently requested URI. On failure, use the 404 state
 instead:
 
     <?php
