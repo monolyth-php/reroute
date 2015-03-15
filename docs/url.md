@@ -63,7 +63,7 @@ Optionally, you can use named matches:
 
     $router->state(
         'user',
-        new Regex("/user/(?'first':\w+)/(?'last':\w+)/"),
+        new Regex("/user/(?'first'\w+)/(?'last'\w+)/"),
         function($first, $last) {
         }
     );

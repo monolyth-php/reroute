@@ -79,7 +79,7 @@ in a URL, for instance:
 You can specify parameters with a name. The exact syntax depends on your chosen
 URL class. For Regex URLs, it simply follows PHP regex syntax:
 
-    "/(?'paramName':regex)/"
+    "/(?'paramName'regex)/"
 
 Note that the order in which they are passed to your callback is not important;
 the Reroute\State figures that out for itself.
@@ -88,7 +88,7 @@ the Reroute\State figures that out for itself.
 
     $router->state(
         'user',
-        new Regex("/(?'firstname':\s+)/(?'lastname':\s+)/", ['GET', 'POST']),
+        new Regex("/(?'firstname'\s+)/(?'lastname'\s+)/", ['GET', 'POST']),
         function($lastname, $firstname) {
             // ...
         }
