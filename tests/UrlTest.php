@@ -79,5 +79,18 @@ class UrlTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('/', $here);
         $this->assertEquals('http://foo.com/', $there);
     }
+
+    public function testGroupedWithRegexUrl()
+    {
+        $router = new Router;
+        $router->under('/foo', function ($router) {
+            $router->state('test', new Regex("/(?'bar':\w+)/"), function () {});
+        });
+        $url = $router->get('test')->url();
+        $this->assertEquals(
+            'http://localhost/foo/baz/',
+            $url->generate(['bar' => 'baz'])
+        );
+    }
 }
 
