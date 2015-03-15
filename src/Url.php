@@ -19,10 +19,11 @@ abstract class Url
     public function prefix($prefix)
     {
         $url = $this->url;
-        $parts = parse_url($url);
+        $url = str_replace('?', '__QUESTION_MARK__', $url);
+        $path = parse_url($url, PHP_URL_PATH);
         $this->url = str_replace(
-            $parts['path'],
-            $prefix.$parts['path'],
+            [$path, '__QUESTION_MARK__'],
+            [$prefix.$path, '?'],
             $url
         );
     }
