@@ -1,7 +1,9 @@
 <?php
 
 namespace Reroute;
+
 use ReflectionFunction;
+use ReflectionException;
 use BadMethodCallException;
 
 class State
@@ -51,7 +53,11 @@ class State
             } elseif ($value->name == 'VERB') {
                 $arguments[] = $this->verb;
             } else {
-                throw new BadMethodCallException;
+                try {
+                    $arguments[] = $value->getDefaultValue();
+                } catch (ReflectionException $e) {
+                    throw new BadMethodCallException;
+                }
             }
         }
         $call = $this->state;
