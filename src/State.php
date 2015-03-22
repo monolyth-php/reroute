@@ -2,6 +2,7 @@
 
 namespace Reroute;
 
+use ReflectionMethod;
 use ReflectionFunction;
 use ReflectionException;
 use BadMethodCallException;
@@ -43,8 +44,12 @@ class State
     public function run()
     {
         $call = $this->state;
-        while (is_callable($call)) {
-            $reflection = new ReflectionFunction($call);
+        do {
+            if (is_object($call) && method_exists($call, '__invoke')) {
+                $reflection = new ReflectionMethod($call, '__invoke');
+            } else {
+                $reflection = new ReflectionFunction($call);
+            }
             $parameters = $reflection->getParameters();
             $arguments = [];
             foreach ($parameters as $key => $value) {
@@ -63,7 +68,8 @@ class State
                 }
             }
             $call = call_user_func_array($call, $arguments);
-        }
+            $this->arguments = [];
+        } while (is_callable($call));
         return $call;
     }
 
