@@ -42,26 +42,26 @@ class State
 
     public function run()
     {
-        $reflection = new ReflectionFunction($this->state);
-        $parameters = $reflection->getParameters();
-        $arguments = [];
-        foreach ($parameters as $key => $value) {
-            if (isset($this->arguments[$value->name])) {
-                $arguments[] = $this->arguments[$value->name];
-            } elseif (isset($this->arguments[$key])) {
-                $arguments[] = $this->arguments[$key];
-            } elseif ($value->name == 'VERB') {
-                $arguments[] = $this->verb;
-            } else {
-                try {
-                    $arguments[] = $value->getDefaultValue();
-                } catch (ReflectionException $e) {
-                    throw new BadMethodCallException;
-                }
-            }
-        }
         $call = $this->state;
         while (is_callable($call)) {
+            $reflection = new ReflectionFunction($call);
+            $parameters = $reflection->getParameters();
+            $arguments = [];
+            foreach ($parameters as $key => $value) {
+                if (isset($this->arguments[$value->name])) {
+                    $arguments[] = $this->arguments[$value->name];
+                } elseif (isset($this->arguments[$key])) {
+                    $arguments[] = $this->arguments[$key];
+                } elseif ($value->name == 'VERB') {
+                    $arguments[] = $this->verb;
+                } else {
+                    try {
+                        $arguments[] = $value->getDefaultValue();
+                    } catch (ReflectionException $e) {
+                        throw new BadMethodCallException;
+                    }
+                }
+            }
             $call = call_user_func_array($call, $arguments);
         }
         return $call;
