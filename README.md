@@ -21,12 +21,12 @@ Add "monomelodies/reroute" to your `composer.json` requirements:
 ### Manual installation
 
 1. Get the code;
-    1.1. Clone the repository, e.g. from GitHub;
-    1.2. Download the ZIP (e.g. from Github) and extract.
+  1. Clone the repository, e.g. from GitHub;
+  2. Download the ZIP (e.g. from Github) and extract.
 2. Make your project recognize Reroute:
-    2.1. Register `/path/to/reroute/src` for the namespace `Reroute\\` in your
-        PSR-4 autoloader (recommended);
-    2.2. Alternatively, manually `include` the files you need.
+  1. Register `/path/to/reroute/src` for the namespace `Reroute\\` in your
+     PSR-4 autoloader (recommended);
+  2. Alternatively, manually `include` the files you need.
 
 ## Defining routes
 
