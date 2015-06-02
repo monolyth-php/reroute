@@ -1,9 +1,6 @@
 site_name: Reroute documentation
 pages:
-
 - [index.md, Introduction, Quickstart]
-
-# API reference:
 - [router.md, API reference, Router]
 - [state.md, API reference, State]
 - [url.md, API reference, URL]

@@ -76,7 +76,6 @@ abstract class Url
             throw new IllegalRedirectException;
         }
         header("Location: ".$this->generate($arguments), true, 302);
-        die();
     }
     
     /**
@@ -91,7 +90,6 @@ abstract class Url
             throw new IllegalRedirectException;
         }
         header("Location: ".$this->generate($arguments), true, 301);
-        die();
     }
 }
 
