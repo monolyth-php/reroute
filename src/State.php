@@ -12,7 +12,6 @@ class State
     private $url;
     private $state;
     private $verb = null;
-    private $parameters = [];
     private $arguments = [];
     private $group = null;
 
