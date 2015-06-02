@@ -2,7 +2,7 @@
 
 namespace Reroute;
 
-class IllegalRedirectExcption extends \Exception
+class IllegalRedirectException extends \Exception
 {
 }
 
