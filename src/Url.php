@@ -4,6 +4,7 @@ namespace Reroute;
 
 abstract class Url
 {
+    protected $host;
     protected $url;
     protected $verbs;
 
@@ -16,13 +17,18 @@ abstract class Url
         $this->verbs = $verbs;
     }
 
+    public function setHost($host)
+    {
+        $this->host = $host;
+    }
+
     public function prefix($prefix)
     {
         $url = $this->url;
-        $url = str_replace('?', '__QUESTION_MARK__', $url);
+        $url = str_replace('?', '###', $url);
         $path = parse_url($url, PHP_URL_PATH);
         $this->url = str_replace(
-            [$path, '__QUESTION_MARK__'],
+            [$path, '###'],
             [$prefix.$path, '?'],
             $url
         );
