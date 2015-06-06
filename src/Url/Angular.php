@@ -15,7 +15,7 @@ class Angular extends Url
     public function match($url, $method)
     {
         $newurl = preg_replace('@:(\w+)@', '(\w+)', $this->url);
-        if (preg_match("@^$newurl$@", $url, $matches)) {
+        if (preg_match("@^{$this->host}$newurl$@", $url, $matches)) {
             unset($matches[0]);
             foreach ($matches as $key => $value) {
                 if (is_numeric($key)) {
