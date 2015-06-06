@@ -15,7 +15,7 @@ class Braces extends Url
     public function match($url, $method)
     {
         $try = preg_replace('@{(\w+)}@', '(\w+)', $this->url);
-        if (preg_match("@^$try$@", $url, $matches)) {
+        if (preg_match("@^{$this->host}$try$@", $url, $matches)) {
             unset($matches[0]);
             foreach ($matches as $key => $value) {
                 if (is_numeric($key)) {
