@@ -9,14 +9,17 @@ use BadMethodCallException;
 
 class State
 {
+    private $host;
     private $url;
     private $state;
     private $verb = null;
     private $arguments = [];
     private $group = null;
 
-    public function __construct($url, callable $state)
+    public function __construct($host, Url $url, callable $state)
     {
+        $this->host = $host;
+        $url->setHost($host);
         $this->url = $url;
         $this->state = $state;
     }
