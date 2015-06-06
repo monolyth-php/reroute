@@ -8,7 +8,9 @@ class Flat extends Url
 {
     public function match($url, $method)
     {
-        if ($url == $this->host.$this->url) {
+        if ($url == $this->host.$this->url
+            && in_array($method, $this->verbs)
+        ) {
             return [];
         }
         return null;
