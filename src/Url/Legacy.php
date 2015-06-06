@@ -26,7 +26,7 @@ class Legacy extends Url
             },
             str_replace('.', '\.', trim($this->url))
         );
-        if (preg_match("@^$newurl$@", $url, $matches)
+        if (preg_match("@^{$this->host}$newurl$@", $url, $matches)
             && in_array($method, $this->verbs)
         ) {
             unset($matches[0]);

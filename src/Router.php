@@ -9,14 +9,27 @@ class Router
      * Array storing defined routes.
      */
     protected $routes = [];
+
     /**
      * Array storing defined states.
      */
+
     protected $states = [];
+
     /**
-     * String to prefix to every URL. Defaults to the current domain.
+     * Host to use for every URL. Defaults to http://localhost
+     *
+     * Note that this is fine if all URLs are on the same domain anyway, and
+     * you're not passing the host name during resolve.
      */
+    protected $host = 'http://localhost';
+
+    /**
+     * String to prefix to every URL.
+     */
+
     protected $prefix = '';
+
     /**
      * Group the state should be in (faux-namespace).
      */
@@ -36,7 +49,7 @@ class Router
     public function state($name, Url $url, callable $callback)
     {
         $url->prefix($this->prefix);
-        $state = new State($url, $callback);
+        $state = new State($this->host, $url, $callback);
         if (isset($this->group)) {
             $state->group($this->group);
         }
@@ -45,10 +58,26 @@ class Router
     }
 
     /**
+     * For all routes defined inside $callback, use $host.
+     *
+     * @param string $host The host to use.
+     * @param callable $callback Callback defining routes for this host. It
+     *                           gets passed a single argument (the router
+     *                           instance).
+     * @return void
+     */
+    public function host($host, callable $callback)
+    {
+        $previous = $this->host;
+        $this->host = $host;
+        $callback($this);
+        $this->host = $previous;
+    }
+
+    /**
      * For all routes defined inside $callback, prepend $prefix first.
      *
-     * @param string $prefix The prefix to be prepended. May include host
-     *                       and protocol.
+     * @param string $prefix The prefix to be prepended to the current path.
      * @param callable $callback Callback defining routes with this prefix. It
      *                           gets passed a single argument (the router
      *                           instance).
@@ -74,7 +103,14 @@ class Router
     public function group($group, callable $callback)
     {
         $previous = isset($this->group) ? $this->group : null;
-        $this->group = $group;
+        if (isset($previous)) {
+            if (!is_array($previous)) {
+                $this->group = [$this->group];
+            }
+            $this->group[] = $group;
+        } else {
+            $this->group = $group;
+        }
         $callback($this);
         $this->group = $previous;
     }
@@ -91,12 +127,20 @@ class Router
      */
     public function resolve($url, $method = 'GET')
     {
-        /**
-         * Remove any $_GET values; they're not needed for matching.
-         */
-        $url = preg_replace('@\?.*?$@', '', $url);
+        $parts = parse_url($url);
+        $defaults = [
+            'scheme' => 'http',
+            'host' => 'localhost',
+        ];
+        unset($parts['query'], $parts['fragment']);
+        foreach ($defaults as $key => $value) {
+            if (!isset($parts[$key])) {
+                $parts[$key] = $value;
+            }
+        }
+        $url = http_build_url('', $parts);
 
-        foreach ($this->routes as $route => $state) {
+        foreach ($this->routes as $state) {
             if ($state->match($url, $method)) {
                 return $state;
             }

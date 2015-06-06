@@ -1,8 +1,10 @@
 site_name: Reroute documentation
 pages:
-- [index.md, Introduction, Quickstart]
-- [router.md, API reference, Router]
-- [state.md, API reference, State]
-- [url.md, API reference, URL]
+- Home:
+    - 'Quickstart': 'index.md'
+- API reference:
+    - 'Route': 'api/router.md'
+    - 'State': 'api/state.md'
+    - 'URL': 'api/url.md'
 
-theme: readthedocs
+theme: united

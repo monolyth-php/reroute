@@ -14,7 +14,7 @@ Add "monomelodies/reroute" to your `composer.json` requirements:
 
     {
         "require": {
-            "monomelodies/reroute": ">=0.4"
+            "monomelodies/reroute": "^1.0.0"
         }
     }
 
