@@ -39,17 +39,15 @@ abstract class Url
         if (!isset($url)) {
             $url = $this->url;
         }
-        $parts = parse_url($url);
+        $fallback = parse_url($this->host);
+        $parts = $fallback + parse_url($url);
         if (!isset($parts['scheme'], $parts['host'])) {
-            $url = sprintf(
-                'http://%s%s',
-                isset($_SERVER['SERVER_NAME']) ?
-                    $_SERVER['SERVER_NAME'] :
-                    'localhost',
-                $url
-            );
+            $parts['scheme'] = 'http';
+            $parts['host'] = isset($_SERVER['SERVER_NAME']) ?
+                $_SERVER['SERVER_NAME'] :
+                'localhost';
         }
-        return $url;
+        return http_build_url($parts);
     }
 
     /**
