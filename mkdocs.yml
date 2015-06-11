@@ -1,4 +1,7 @@
 site_name: Reroute documentation
+site_url: http://reroute.monomelodies.nl/docs/
+repo_url: https://github.com/monomelodies/reroute
+
 pages:
 - Home:
     - 'Quickstart': 'index.md'
@@ -7,4 +10,3 @@ pages:
     - 'State': 'api/state.md'
     - 'URL': 'api/url.md'
 
-theme: united
