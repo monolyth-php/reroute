@@ -36,7 +36,7 @@ class State
     {
         $arguments = $this->url->match($url, $verb);
         if (!is_null($arguments)) {
-            $this->arguments = $arguments;
+            $this->arguments = ['VERB' => $verb] + array_unique($arguments);
             $this->verb = $verb;
             return true;
         }
@@ -54,23 +54,31 @@ class State
             }
             $parameters = $reflection->getParameters();
             $arguments = [];
-            foreach ($parameters as $key => $value) {
-                if (isset($this->arguments[$value->name])) {
-                    $arguments[] = $this->arguments[$value->name];
-                } elseif (isset($this->arguments[$key])) {
-                    $arguments[] = $this->arguments[$key];
-                } elseif ($value->name == 'VERB') {
-                    $arguments[] = $this->verb;
-                } else {
-                    try {
-                        $arguments[] = $value->getDefaultValue();
-                    } catch (ReflectionException $e) {
-                        throw new BadMethodCallException;
-                    }
+            foreach ($parameters as $value) {
+                $arguments[$value->name] = null;
+            }
+            // Fill all named arguments from the route match:
+            $args = $this->arguments;
+            array_walk($arguments, function (&$value, $index) use (&$args) {
+                if (isset($args[$index])) {
+                    $value = $args[$index];
+                    unset($args[$index]);
+                }
+            });
+            // For remaining arguments, use the next available index:
+            array_walk($arguments, function (&$value) use (&$args) {
+                if (is_null($value) && $args) {
+                    $value = array_shift($args);
+                }
+            });
+            // Remove unset arguments:
+            $args = [];
+            foreach ($arguments as $arg) {
+                if (isset($args)) {
+                    $args[] = $arg;
                 }
             }
-            $call = call_user_func_array($call, $arguments);
-            $this->arguments = [];
+            $call = call_user_func_array($call, $args);
         } while (is_callable($call));
         return $call;
     }

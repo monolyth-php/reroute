@@ -69,6 +69,23 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('doe', $last);
     }
 
+    public function testVerbInRandomPlace()
+    {
+        $router = new Router;
+        $router->state(
+            'random',
+            new Regex("/(?'foo'\w+)/(\w+)/"),
+            function ($bar, $VERB, $foo) {
+                return compact('bar', 'VERB', 'foo');
+            }
+        );
+        $state = $router->resolve('/foo/bar/');
+        extract($state->run());
+        $this->assertEquals('GET', $VERB);
+        $this->assertEquals('foo', $foo);
+        $this->assertEquals('bar', $bar);
+    }
+
     public function testIgnoreGetParameters()
     {
         $router = new Router;
