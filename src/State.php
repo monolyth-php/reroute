@@ -74,11 +74,12 @@ class State
             // Remove unset arguments:
             $args = [];
             foreach ($arguments as $arg) {
-                if (isset($args)) {
+                if (isset($arg)) {
                     $args[] = $arg;
                 }
             }
             $call = call_user_func_array($call, $args);
+            $this->arguments = [];
         } while (is_callable($call));
         return $call;
     }
