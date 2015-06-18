@@ -36,7 +36,7 @@ class State
     {
         $arguments = $this->url->match($url, $verb);
         if (!is_null($arguments)) {
-            $this->arguments = ['VERB' => $verb] + array_unique($arguments);
+            $this->arguments = ['VERB' => $verb] + $arguments;
             $this->verb = $verb;
             return true;
         }
