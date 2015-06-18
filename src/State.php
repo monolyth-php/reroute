@@ -59,12 +59,18 @@ class State
             }
             // Fill all named arguments from the route match:
             $args = $this->arguments;
-            array_walk($arguments, function (&$value, $index) use (&$args) {
-                if (isset($args[$index])) {
-                    $value = $args[$index];
-                    unset($args[$index]);
+            //  Start with -1, first argument is always $VERB
+            $ignore = -1;
+            array_walk(
+                $arguments,
+                function (&$value, $index) use (&$args, &$ignore) {
+                    if (isset($args[$index])) {
+                        $value = $args[$index];
+                        unset($args[$index], $args[$ignore]);
+                    }
+                    ++$ignore;
                 }
-            });
+            );
             // For remaining arguments, use the next available index:
             array_walk($arguments, function (&$value) use (&$args) {
                 if (is_null($value) && $args) {
