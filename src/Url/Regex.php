@@ -8,8 +8,8 @@ class Regex extends Url
 {
     public function match($url, $method)
     {
-        if (preg_match("@^{$this->host}{$this->url}$@", $url, $matches)
-            && in_array($method, $this->verbs)
+        if (in_array($method, $this->verbs)
+            && preg_match("@^{$this->host}{$this->url}$@", $url, $matches)
         ) {
             unset($matches[0]);
             $found = [];

@@ -36,7 +36,7 @@ class State
     {
         $arguments = $this->url->match($url, $verb);
         if (!is_null($arguments)) {
-            $this->arguments = ['VERB' => $verb] + array_unique($arguments);
+            $this->arguments = $arguments;
             $this->verb = $verb;
             return true;
         }
@@ -55,16 +55,26 @@ class State
             $parameters = $reflection->getParameters();
             $arguments = [];
             foreach ($parameters as $value) {
-                $arguments[$value->name] = null;
+                $arguments[$value->name] = $value->name == 'VERB' ?
+                    $this->verb :
+                    null;
             }
             // Fill all named arguments from the route match:
             $args = $this->arguments;
-            array_walk($arguments, function (&$value, $index) use (&$args) {
-                if (isset($args[$index])) {
-                    $value = $args[$index];
-                    unset($args[$index]);
+            $remove = [];
+            while (false !== ($curr = each($args))) {
+                if (is_string($curr['key'])
+                    && array_key_exists($curr['key'], $arguments)
+                ) {
+                    $arguments[$curr['key']] = $curr['value'];
+                    $remove[] = $curr['key'];
+                    $next = each($args);
+                    $remove[] = $next['key'];
                 }
-            });
+            }
+            foreach ($remove as $key) {
+                unset($args[$key]);
+            }
             // For remaining arguments, use the next available index:
             array_walk($arguments, function (&$value) use (&$args) {
                 if (is_null($value) && $args) {
