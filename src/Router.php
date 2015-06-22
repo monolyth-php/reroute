@@ -128,16 +128,8 @@ class Router
     public function resolve($url, $method = 'GET')
     {
         $parts = parse_url($url);
-        $defaults = [
-            'scheme' => 'http',
-            'host' => 'localhost',
-        ];
         unset($parts['query'], $parts['fragment']);
-        foreach ($defaults as $key => $value) {
-            if (!isset($parts[$key])) {
-                $parts[$key] = $value;
-            }
-        }
+        $parts += parse_url($this->host);
         $url = http_build_url('', $parts);
 
         foreach ($this->routes as $state) {
