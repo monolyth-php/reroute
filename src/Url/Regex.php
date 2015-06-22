@@ -36,18 +36,20 @@ class Regex extends Url
             PREG_SET_ORDER
         );
         foreach ($variables as $idx => $var) {
-            if (preg_match("@\?'(\w+)'@", $var[1], $named)
+            $var = $var[0];
+            if (preg_match("@\?'(\w+)'@", $var, $named)
                 && isset($arguments[$named[1]])
             ) {
                 $url = str_replace(
-                    $var[0],
+                    $var,
                     $arguments[$named[1]],
                     $url
                 );
-            } elseif (isset($arguments[$idx])) {
-                $url = str_replace($var[0], $argugments[$idx], $url);
+                unset($arguments[$named[1]]);
+            } elseif ($arguments) {
+                $url = str_replace($var, array_shift($arguments), $url);
             } else {
-                $url = str_replace($var[0], '', $url);
+                $url = str_replace($var, '', $url);
             }
         }
         return $this->full($url);
