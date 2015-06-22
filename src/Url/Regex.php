@@ -29,12 +29,14 @@ class Regex extends Url
     {
         $url = $this->url;
         // For all arguments, map the values back into the URL:
-        preg_match(
+        preg_match_all(
             "@\((.*?)\)@",
             $url,
-            $variables
+            $variables,
+            PREG_SET_ORDER
         );
         foreach ($variables as $idx => $var) {
+            $var = $var[0];
             if (preg_match("@\?'(\w+)'@", $var, $named)
                 && isset($arguments[$named[1]])
             ) {
