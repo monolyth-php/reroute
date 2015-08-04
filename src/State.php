@@ -15,9 +15,11 @@ class State
     private $verb = null;
     private $arguments = [];
     private $group = null;
+    public $name;
 
-    public function __construct($host, Url $url, callable $state)
+    public function __construct($name, $host, Url $url, callable $state)
     {
+        $this->name = $name;
         $this->host = $host;
         $url->setHost($host);
         $this->url = $url;

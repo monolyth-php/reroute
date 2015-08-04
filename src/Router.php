@@ -49,7 +49,7 @@ class Router
     public function state($name, Url $url, callable $callback)
     {
         $url->prefix($this->prefix);
-        $state = new State($this->host, $url, $callback);
+        $state = new State($name, $this->host, $url, $callback);
         if (isset($this->group)) {
             $state->group($this->group);
         }
