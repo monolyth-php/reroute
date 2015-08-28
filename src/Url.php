@@ -43,8 +43,8 @@ abstract class Url
         $parts = $fallback + parse_url($url);
         if (!isset($parts['scheme'], $parts['host'])) {
             $parts['scheme'] = 'http';
-            $parts['host'] = isset($_SERVER['SERVER_NAME']) ?
-                $_SERVER['SERVER_NAME'] :
+            $parts['host'] = isset($_SERVER['HTTP_HOST']) ?
+                $_SERVER['HTTP_HOST'] :
                 'localhost';
         }
         return http_build_url($parts);
