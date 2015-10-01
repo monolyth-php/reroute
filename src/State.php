@@ -5,11 +5,13 @@ namespace Reroute;
 class State
 {
     private $state;
-    private $verb;
     private $arguments = [];
 
-    public function __construct($state, array $arguments)
+    public $name;
+
+    public function __construct($name, $state, array $arguments)
     {
+        $this->name = $name;
         if (!is_callable($state)) {
             $tmp = $state;
             $state = function () use ($tmp) {
@@ -18,9 +20,6 @@ class State
         }
         $this->state = $state;
         $this->arguments = $arguments;
-        $this->verb = isset($_SERVER['REQUEST_METHOD']) ?
-            $_SERVER['REQUEST_METHOD'] :
-            'GET';
     }
 
     public function run()
