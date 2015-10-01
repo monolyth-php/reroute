@@ -100,7 +100,7 @@ actually resolve the request:
 <?php
 
 if ($state = $router->resolve($_SERVER['REQUEST_URI'])) {
-    echo $state->run();
+    echo $state;
 } else {
     // 404!
 }
@@ -268,9 +268,9 @@ instead:
 <?php
 
 if ($state = $router->resolve($_SERVER['REQUEST_URI'])) {
-    $state->run();
+    echo $state;
 } else {
-    $router->get('404')->run();
+    echo $router->get('404');
 }
 
 ```
