@@ -23,7 +23,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $router = new Router;
         $router->when('/')->then('Hello world!');
         $state = $router->resolve('/');
-        $this->assertEquals('Hello world!', $state->run());
+        $this->assertEquals('Hello world!', "$state");
     }
 
     public function unnamedParameter()
@@ -33,7 +33,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
             return $id;
         });
         $state = $router->resolve('/1/');
-        $this->assetEquals(1, $state->run());
+        $this->assetEquals(1, "$state");
     }
 
     public function testNamedParameter()
@@ -43,7 +43,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
             return $id;
         });
         $state = $router->resolve('/1/');
-        $this->assertEquals(1, $state->run());
+        $this->assertEquals(1, "$state");
     }
 
     public function testParameterOrder()
@@ -51,12 +51,10 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $router = new Router;
         $router->when("/(?'first'\w+)/(?'last'\w+)/")
                ->then(function ($last, $first) {
-                    return compact('last', 'first');
+                    return "$first $last";
                });
         $state = $router->resolve('/john/doe/');
-        extract($state->run());
-        $this->assertEquals('john', $first);
-        $this->assertEquals('doe', $last);
+        $this->assertEquals('john doe', "$state");
     }
 
     public function testVerbInRandomPlace()
@@ -64,13 +62,10 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $router = new Router;
         $router->when("/(?'foo'\w+)/(\w+)/")
                ->then(function ($bar, $VERB, $foo) {
-                    return compact('bar', 'VERB', 'foo');
+                    return "$bar $VERB $foo";
                });
         $state = $router->resolve('/foo/bar/');
-        extract($state->run());
-        $this->assertEquals('GET', $VERB);
-        $this->assertEquals('foo', $foo);
-        $this->assertEquals('bar', $bar);
+        $this->assertEquals('bar GET foo', "$state");
     }
 
     public function testIgnoreGetParameters()
@@ -113,30 +108,6 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $this->assertInstanceOf('Reroute\State', $state);
     }
 
-    /*
-    public function testRouteGroup()
-    {
-        $router = new Router;
-        $router->group('test', function ($router) {
-            $router->state('foo', new Flat('/bar/'), function () {});
-        });
-        $state = $router->resolve('/bar/');
-        $this->assertEquals('test', $state->group());
-    }
-
-    public function testRouteGroups()
-    {
-        $router = new Router;
-        $router->group('foo', function ($router) {
-            $router->group('bar', function ($router) {
-                $router->state('test', new Flat('/test/'), function () {});
-            });
-        });
-        $state = $router->resolve('/test/');
-        $this->assertEquals(['foo', 'bar'], $state->group());
-    }
-    */
-
     public function testRouteHost()
     {
         $router = new Router;
@@ -151,11 +122,11 @@ class RouterTest extends PHPUnit_Framework_TestCase
             });
         });
         $state = $router->resolve('http://foo.com/foo/');
-        $this->assertEquals('foo', $state->run());
+        $this->assertEquals('foo', "$state");
         $state = $router->resolve('http://foo.com/bar/');
         $this->assertEquals(null, $state);
         $state = $router->resolve('http://bar.com/bar/');
-        $this->assertEquals('bar', $state->run());
+        $this->assertEquals('bar', "$state");
         $state = $router->resolve('http://bar.com/foo/');
         $this->assertEquals(null, $state);
     }
