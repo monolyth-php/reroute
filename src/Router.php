@@ -13,11 +13,9 @@ class Router
     protected $routes = [];
 
     /**
-     * Array storing defined states.
+     * Endstate for this route.
      */
-    protected $states = [];
-
-    protected $final;
+    protected $state;
 
     /**
      * Host to use for every URL. Defaults to http://localhost
@@ -28,16 +26,8 @@ class Router
     protected $host = 'http://localhost';
 
     /**
-     * String to prefix to every URL.
+     * Name of the current endstate.
      */
-
-    protected $prefix = '';
-
-    /**
-     * Group the state should be in (faux-namespace).
-     */
-    protected $group;
-
     protected $name = null;
 
     /**
@@ -104,7 +94,12 @@ class Router
         } elseif (count($args) == 3 && is_callable($args[2])) {
             $callback = $args[2];
         }
-        $this->routes[$url] = new Router($url, $intermediate);
+        if (!isset($intermediate) && isset($this->intermediate)) {
+            $intermediate = $this->intermediate;
+        }
+        if (!isset($this->routes[$url])) {
+            $this->routes[$url] = new Router($url, $intermediate);
+        }
         if (isset($callback)) {
             $callback($this->routes[$url]);
         }
@@ -112,41 +107,22 @@ class Router
     }
 
     /**
-     * Define a named state. Any existing state with the same name will be
-     * overridden (see Router::get below on how to extend existing states).
-     *
-     * @param string $name The unique name identifying this state.
-     * @param string $url The URL to match. Can be a FQDN or something relative.
-     * @param callable $intermediate Optional intermediate callback.
-     * @param callable $callback Optional grouping callback.
-     * @return Reroute\Router A new sub-router.
-     * @return void
-     */
-    public function state($name, $url, callable $intermediate = null)
-    {
-        $args = func_get_args();
-        array_shift($args);
-        $this->name = $name;
-        $state = call_user_func_array([$this, 'when'], $args);
-        $this->name = null;
-        $this->states[$name] = $state;
-        return $state;
-    }
-
-    /**
      * If the current REQUEST_URI ends with this URL, yield the associated
      * state. A state can be anything but will get wrapped in a `State` object.
      *
+     * @param string $name The (preferably) unique name of this state.
      * @param mixed $state A valid state for the matched URL.
      * @return Reroute\State A State object.
+     * @see Reroute\Route::generate
      */
-    public function then($state)
+    public function then($name, $state)
     {
-        $this->final = function (array $matches) use ($state) {
+        $this->name = $name;
+        $this->state = function (array $matches) use ($name, $state) {
             $parser = new ArgumentsParser($this->intermediate);
             $args = $parser->parse($matches);
             if (false !== call_user_func_array($this->intermediate, $args)) {
-                return new State($this->name, $state, $matches);
+                return new State($name, $state, $matches);
             }
         };
     }
@@ -172,7 +148,7 @@ class Router
                 $last = array_pop($matches);
                 unset($matches[0]);
                 if (!strlen($last)) {
-                    return call_user_func($router->final, $matches);
+                    return call_user_func($router->state, $matches);
                 } elseif ($found = $router->resolve($url, $method)) {
                     return $found;
                 }
@@ -187,16 +163,16 @@ class Router
      */
     public function get($name)
     {
-        if (!($state = $this->findStateByName($name))) {
-            throw new DomainException("Unknown (final) named state: $name");
+        if (!($state = $this->findStateRecursive($name))) {
+            throw new DomainException("Unknown state: $name");
         }
-        return call_user_func($state->final, []);
+        return call_user_func($state->state, []);
     }
 
     public function generate($name, array $arguments = [], $shortest = true)
     {
-        if (!($state = $this->findStateByName($name))) {
-            throw new DomainException("Unknown (final) named state: $name");
+        if (!($state = $this->findStateRecursive($name))) {
+            throw new DomainException("Unknown state: $name");
         }
         $url = $state->url;
         // For all arguments, map the values back into the URL:
@@ -248,18 +224,17 @@ class Router
         }
     }
 
-    protected function findStateByName($name)
+    protected function findStateRecursive($name)
     {
-        if (!isset($this->states[$name], $this->states[$name]->final)) {
-            foreach ($this->routes as $router) {
-                try {
-                    return $router->findStateByName($name);
-                } catch (DomainException $e) {
+        if (!isset($this->state) || $this->name != $name) {
+            foreach ($this->routes as $url => $router) {
+                if ($state = $router->findStateRecursive($name)) {
+                    return $state;
                 }
             }
             return null;
         }
-        return $this->states[$name];
+        return $this;
     }
 
     protected function normalize($url, $scheme = 'http', $host = 'localhost')
