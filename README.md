@@ -239,6 +239,12 @@ $router->move('example');
 
 ```
 
+Optional second parameter is a hash of arguments as in `generate`.
+Note that if the Router detects the state being redirected to is already the
+current URL, nothing happens unless a third parameter `$force` is set to true.
+This could be useful when redirecting after a succesfull `POST` to prevent
+double-posting.
+
 ## Handling 404s and other errors
 
 ```
