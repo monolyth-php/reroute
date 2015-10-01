@@ -187,27 +187,18 @@ class Router
      */
     public function get($name)
     {
-        if (!isset($this->states[$name])) {
-            throw new DomainException("Unknown named state: $name");
+        if (!($state = $this->findStateByName($name))) {
+            throw new DomainException("Unknown (final) named state: $name");
         }
-        if (!isset($this->states[$name]->final)) {
-            throw new DomainException("State $name is not a final state.");
-        }
-        return call_user_func($this->states[$name]->final, []);
+        return call_user_func($state->final, []);
     }
 
     public function generate($name, array $arguments = [], $shortest = true)
     {
-        if (!isset($this->states[$name], $this->states[$name]->final)) {
-            foreach ($this->routes as $router) {
-                try {
-                    return $router->generate($name, $arguments, $shortest);
-                } catch (DomainException $e) {
-                }
-            }
+        if (!($state = $this->findStateByName($name))) {
             throw new DomainException("Unknown (final) named state: $name");
         }
-        $url = $this->states[$name]->url;
+        $url = $state->url;
         // For all arguments, map the values back into the URL:
         preg_match_all(
             "@\((.*?)\)@",
@@ -255,6 +246,20 @@ class Router
             header("Location: $url", true, 301);
             die();
         }
+    }
+
+    protected function findStateByName($name)
+    {
+        if (!isset($this->states[$name], $this->states[$name]->final)) {
+            foreach ($this->routes as $router) {
+                try {
+                    return $router->findStateByName($name);
+                } catch (DomainException $e) {
+                }
+            }
+            return null;
+        }
+        return $this->states[$name];
     }
 
     protected function normalize($url, $scheme = 'http', $host = 'localhost')
