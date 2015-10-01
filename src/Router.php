@@ -76,7 +76,7 @@ class Router
             $url = '!@#$%^&*()'.rand(0, 999).microtime();
         } else {
             // Brace style to regex:
-            $url = preg_replace('@{(a-z]\w*)}@', "(?'\\1'\w+)", $url);
+            $url = preg_replace('@{([a-z]\w*)}@', "(?'\\1'\w+)", $url);
             // Angular style to regex:
             $url = preg_replace('@:([a-z]\w*)@', "(?'\\1'\w+)", $url);
         }
