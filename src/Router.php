@@ -73,7 +73,7 @@ class Router
     public function when($url, callable $intermediate = null)
     {
         if (is_null($url)) {
-            $url = '!@#$%^&*()'.rand(0, 999).microtime();
+            $url = '!!!!'.rand(0, 999).microtime();
         } else {
             // Brace style to regex:
             $url = preg_replace('@{([a-z]\w*)}@', "(?'\\1'\w+)", $url);
@@ -92,9 +92,9 @@ class Router
         );
         $url = preg_replace("@(?<!:)/{2,}@", '/', $url);
         $args = func_get_args();
-        if (count($args == 2) && $intermediate) {
-            // If the second argument is a callable that groups, use an empty
-            // lamba as an intermediate:
+        if (count($args) == 2 && $intermediate) {
+            // If the second argument is a callable that groups, use that as a
+            // callback and empty the intermediate:
             $reflect = new ReflectionFunction($intermediate);
             $args = $reflect->getParameters();
             if (count($args) == 1 && $args[0]->name == 'router') {
@@ -167,14 +167,14 @@ class Router
         unset($parts['query'], $parts['fragment']);
         $parts += parse_url($this->host);
         $url = http_build_url('', $parts);
-        foreach ($this->routes as $match => $state) {
+        foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match(.*)$@", $url, $matches)) {
                 $last = array_pop($matches);
                 unset($matches[0]);
                 if (!strlen($last)) {
-                    return call_user_func($state->final, $matches);
-                } else {
-                    return $state->resolve($url, $method);
+                    return call_user_func($router->final, $matches);
+                } elseif ($found = $router->resolve($url, $method)) {
+                    return $found;
                 }
             }
         }
