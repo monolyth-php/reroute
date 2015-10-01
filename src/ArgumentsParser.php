@@ -18,8 +18,8 @@ class ArgumentsParser
         $arguments = [];
         foreach ($parameters as $value) {
             $arguments[$value->name] = $value->name == 'VERB' ?
-                (isset($_SERVER['HTTP_METHOD']) ?
-                    $_SERVER['HTTP_METHOD'] :
+                (isset($_SERVER['REQUEST_METHOD']) ?
+                    $_SERVER['REQUEST_METHOD'] :
                     'GET') :
                 null;
         }
