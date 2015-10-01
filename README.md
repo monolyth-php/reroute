@@ -11,7 +11,7 @@ to be usable in any type of project or framework.
 ### Composer (recommended)
 
 ```bash
-composer install --save monomelodies/reroute
+composer require monomelodies/reroute
 ```
 
 ### Manual installation
@@ -27,6 +27,26 @@ composer install --save monomelodies/reroute
 ## Defining routes
 
 ### The basics
+Since the Reroute router responds to HTTP requests, we use the `when` and `then`
+methods to respond:
+
+```php
+<?php
+
+$router = new Router;
+$router->when('/some/url/')->then(function ($state) {
+    // Do something.
+});;
+```
+
+`when` starts matching whenever it can, so if your project lives under (for
+example) `http://my-url.com/bla/my-framework/libs` the example route above could
+match `/bla/my-framework/libs/some/url/` if nothing better was defined.
+
+> Note that Reroute matches _parts_ of URLs, hence the fact that your defined
+> route starts with `/` doesn't have any special meaning.
+
+### Matching multiple HTTP verbs
 
 Define a route:
 
