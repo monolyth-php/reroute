@@ -13,7 +13,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testResolveReturnsState()
     {
         $router = new Router;
-        $router->when('/')->then('Hello world');
+        $router->when('/')->then('foo', 'Hello world');
         $state = $router->resolve('/');
         $this->assertInstanceOf('Reroute\State', $state);
     }
@@ -21,7 +21,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testBasicRoute()
     {
         $router = new Router;
-        $router->when('/')->then('Hello world!');
+        $router->when('/')->then('foo', 'Hello world!');
         $state = $router->resolve('/');
         $this->assertEquals('Hello world!', "$state");
     }
@@ -29,7 +29,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function unnamedParameter()
     {
         $router = new Router;
-        $router->when("/(\d+)/")->then(function ($id) {
+        $router->when("/(\d+)/")->then('foo', function ($id) {
             return $id;
         });
         $state = $router->resolve('/1/');
@@ -39,7 +39,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testNamedParameter()
     {
         $router = new Router;
-        $router->when("/(?'id'\d+)/")->then(function ($id) {
+        $router->when("/(?'id'\d+)/")->then('foo', function ($id) {
             return $id;
         });
         $state = $router->resolve('/1/');
@@ -50,7 +50,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     {
         $router = new Router;
         $router->when("/(?'first'\w+)/(?'last'\w+)/")
-               ->then(function ($last, $first) {
+               ->then('foo', function ($last, $first) {
                     return "$first $last";
                });
         $state = $router->resolve('/john/doe/');
@@ -61,7 +61,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     {
         $router = new Router;
         $router->when("/(?'foo'\w+)/(\w+)/")
-               ->then(function ($bar, $VERB, $foo) {
+               ->then('foo', function ($bar, $VERB, $foo) {
                     return "$bar $VERB $foo";
                });
         $state = $router->resolve('/foo/bar/');
@@ -71,7 +71,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testIgnoreGetParameters()
     {
         $router = new Router;
-        $router->when('/')->then(function () {});
+        $router->when('/')->then('foo', function () {});
         $state = $router->resolve('/?foo=bar');
         $this->assertInstanceOf('Reroute\State', $state);
     }
@@ -93,7 +93,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     {
         $router = new Router;
         $router->when('/foo/')
-               ->when('/bar/')->then(function () {});
+               ->when('/bar/')->then('foo', function () {});
         $state = $router->resolve('/foo/bar/');
         $this->assertInstanceOf('Reroute\State', $state);
     }
@@ -102,7 +102,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     {
         $router = new Router;
         $router->when('/foo/', function ($router) {
-            $router->when('/bar/')->then(function () {});
+            $router->when('/bar/')->then('foo', function () {});
         });
         $state = $router->resolve('/foo/bar/');
         $this->assertInstanceOf('Reroute\State', $state);
@@ -112,12 +112,12 @@ class RouterTest extends PHPUnit_Framework_TestCase
     {
         $router = new Router;
         $router->when('http://foo.com/', function ($router) {
-            $router->when('/foo/')->then(function () {
+            $router->when('/foo/')->then('foo', function () {
                 return 'foo';
             });
         });
         $router->when('http://bar.com/', function ($router) {
-            $router->when('/bar/')->then(function () {
+            $router->when('/bar/')->then('foo', function () {
                 return 'bar';
             });
         });
@@ -134,7 +134,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testAngular()
     {
         $router = new Router;
-        $router->when('/:angular/')->then(function () {});
+        $router->when('/:angular/')->then('foo', function () {});
         $state = $router->resolve('/somestring/');
         $this->assertInstanceOf('Reroute\State', $state);
     }
@@ -142,7 +142,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testBraces()
     {
         $router = new Router;
-        $router->when('/{braces}/')->then(function () {});
+        $router->when('/{braces}/')->then('foo', function () {});
         $state = $router->resolve('/somestring/');
         $this->assertInstanceOf('Reroute\State', $state);
     }
@@ -150,7 +150,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testNomatchUrl()
     {
         $router = new Router;
-        $router->state('404', null)->then(function() {});
+        $router->when(null)->then('404', function() {});
         $state = $router->get('404');
         $this->assertInstanceOf('Reroute\State', $state);
     }
@@ -158,8 +158,8 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testGenerate()
     {
         $router = new Router;
-        $router->state('test', "http://foo.com/(?'p1':\w+)/{p2}/:p3/")
-               ->then(function () {});
+        $router->when("http://foo.com/(?'p1':\w+)/{p2}/:p3/")
+               ->then('test', function () {});
         $url = $router->generate(
             'test',
             ['p1' => 'foo', 'p2' => 'bar', 'p3' => 'baz']
