@@ -5,8 +5,4 @@ repo_url: https://github.com/monomelodies/reroute
 pages:
 - Home:
     - 'Quickstart': 'index.md'
-- API reference:
-    - 'Route': 'api/router.md'
-    - 'State': 'api/state.md'
-    - 'URL': 'api/url.md'
 
