@@ -38,6 +38,8 @@ class Router
      */
     protected $group;
 
+    protected $name = null;
+
     /**
      * Constructor. In most cases you won't need to worry about the constructor
      * arguments, but optionally you can pass a path part all routes _must_
@@ -74,9 +76,9 @@ class Router
             $url = '!@#$%^&*()'.rand(0, 999).microtime();
         } else {
             // Brace style to regex:
-            $url = preg_replace('@{(\w+)}@', "(?'\\1'\w+)", $url);
+            $url = preg_replace('@{(a-z]\w*)}@', "(?'\\1'\w+)", $url);
             // Angular style to regex:
-            $url = preg_replace('@:(\w+)@', "(?'\\1'\w+)", $url);
+            $url = preg_replace('@:([a-z]\w*)@', "(?'\\1'\w+)", $url);
         }
         $parts = parse_url($this->url);
         $check = parse_url($url);
@@ -124,7 +126,9 @@ class Router
     {
         $args = func_get_args();
         array_shift($args);
+        $this->name = $name;
         $state = call_user_func_array([$this, 'when'], $args);
+        $this->name = null;
         $this->states[$name] = $state;
         return $state;
     }
@@ -142,7 +146,7 @@ class Router
             $parser = new ArgumentsParser($this->intermediate);
             $args = $parser->parse($matches);
             if (false !== call_user_func_array($this->intermediate, $args)) {
-                return new State($state, $matches);
+                return new State($this->name, $state, $matches);
             }
         };
     }
@@ -194,11 +198,14 @@ class Router
 
     public function generate($name, array $arguments = [], $shortest = true)
     {
-        if (!isset($this->states[$name])) {
-            throw new DomainException("Unknown named state: $name");
-        }
-        if (!isset($this->states[$name]->final)) {
-            throw new DomainException("State $name is not a final state.");
+        if (!isset($this->states[$name], $this->states[$name]->final)) {
+            foreach ($this->routes as $router) {
+                try {
+                    return $router->generate($name, $arguments, $shortest);
+                } catch (DomainException $e) {
+                }
+            }
+            throw new DomainException("Unknown (final) named state: $name");
         }
         $url = $this->states[$name]->url;
         // For all arguments, map the values back into the URL:
@@ -226,26 +233,28 @@ class Router
             }
         }
         if ($shortest && isset($_SERVER['HTTP_HOST'])) {
-            $protocol = 'http';
-            if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') {
-                $protocol = 'https';
-            }
-            $current = "$protocol://{$_SERVER['HTTP_HOST']}";
+            $current = $this->currentHost();
             $url = preg_replace("@^$current@", '', $url);
         }
         return $url;
     }
 
-    public function redirect($name, array $arguments = [])
+    public function redirect($name, array $arguments = [], $force = false)
     {
         $url = $this->generate($name, $arguments, false);
-        header("Location: $url", true, 302);
+        if ($url != $this->currentUrl() || $force) {
+            header("Location: $url", true, 302);
+            die();
+        }
     }
 
-    public function move($name, array $arguments = [])
+    public function move($name, array $arguments = [], $force = false)
     {
         $url = $this->generate($name, $arguments, false);
-        header("Location: $url", true, 301);
+        if ($url != $this->currentUrl() || $force) {
+            header("Location: $url", true, 301);
+            die();
+        }
     }
 
     protected function normalize($url, $scheme = 'http', $host = 'localhost')
@@ -255,6 +264,23 @@ class Router
         $host = isset($parts['host']) ? $parts['host'] : $host;
         $url = preg_replace("@^$scheme://$host@", '', $url);
         return "$scheme://$host$url";
+    }
+
+    public function currentHost()
+    {
+        $protocol = 'http';
+        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') {
+            $protocol = 'https';
+        }
+        return "$protocol://{$_SERVER['HTTP_HOST']}";
+    }
+
+    public function currentUrl()
+    {
+        $url = $this->currentHost().$_SERVER['REQUEST_URI'];
+        $parts = parse_url($url);
+        unset($parts['query'], $parts['fragment']);
+        return http_build_url($parts);
     }
 }
 
