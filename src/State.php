@@ -2,6 +2,8 @@
 
 namespace Reroute;
 
+use Exception;
+
 class State
 {
     private $state;
@@ -22,16 +24,20 @@ class State
         $this->arguments = $arguments;
     }
 
-    public function run()
+    public function __toString()
     {
-        $call = $this->state;
-        do {
-            $parser = new ArgumentsParser($call);
-            $args = $parser->parse($this->arguments);
-            $call = call_user_func_array($call, $args);
-            $this->arguments = [];
-        } while (is_callable($call));
-        return $call;
+        try {
+            $call = $this->state;
+            do {
+                $parser = new ArgumentsParser($call);
+                $args = $parser->parse($this->arguments);
+                $call = call_user_func_array($call, $args);
+                $this->arguments = [];
+            } while (is_callable($call));
+            return $call;
+        } catch (Exception $e) {
+            return $e->getMessage()."\n".$e->getFile()."\n".$e->getLine();
+        }
     }
 }
 
