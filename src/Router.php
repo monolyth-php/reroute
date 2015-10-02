@@ -131,12 +131,11 @@ class Router
      * Attempt to resolve a Reroute\State associated with $url.
      *
      * @param string $url The url to resolve.
-     * @param string $method The HTTP method (GET, POST etc.) to match on.
      * @return Reroute\State|null If succesful, the corresponding state is
      *  returned, otherwise null (the implementor should then show a 404 or
      *  something else notifying the user).
      */
-    public function resolve($url, $method = 'GET')
+    public function resolve($url)
     {
         $url = $this->normalize($url);
         $parts = parse_url($url);
@@ -149,7 +148,7 @@ class Router
                 unset($matches[0]);
                 if (!strlen($last)) {
                     return call_user_func($router->state, $matches);
-                } elseif ($found = $router->resolve($url, $method)) {
+                } elseif ($found = $router->resolve($url)) {
                     return $found;
                 }
             }
