@@ -100,16 +100,17 @@ actually resolve the request:
 <?php
 
 if ($state = $router->resolve($_SERVER['REQUEST_URI'])) {
-    echo $state;
+    echo $state();
 } else {
     // 404!
 }
 ```
 
 `resolve` returns a State object (if a match was found, otherwise `null`) which
-offers a `run` method. This method actually invokes the defined callable
+can ben `__invoke`d. This method actually invokes the defined callable
 (optionally forwarding calls if the callable's return value is itself callable)
-and should eventually return something to output.
+and should eventually return something to output (typically a string, but
+technically it can be any non-callable value like an array or object).
 
 ### Passing parameters
 Your URLs are actually regexes, so you can defined variables to pass into the
@@ -268,9 +269,9 @@ instead:
 <?php
 
 if ($state = $router->resolve($_SERVER['REQUEST_URI'])) {
-    echo $state;
+    echo $state();
 } else {
-    echo $router->get('404');
+    echo $router->get('404')();
 }
 
 ```
