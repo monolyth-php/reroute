@@ -148,7 +148,7 @@ class Router
                 unset($matches[0]);
                 if (!strlen($last)) {
                     return call_user_func($router->state, $matches);
-                } elseif ($found = $router->resolve($url, $method)) {
+                } elseif ($found = $router->resolve($url)) {
                     return $found;
                 }
             }
