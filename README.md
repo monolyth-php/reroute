@@ -112,6 +112,9 @@ can ben `__invoke`d. This method actually invokes the defined callable
 and should eventually return something to output (typically a string, but
 technically it can be any non-callable value like an array or object).
 
+> To emulate a different request type than the actual one, simply change
+>`$_SERVER['REQUEST_METHOD']`.
+
 ### Passing parameters
 Your URLs are actually regexes, so you can defined variables to pass into the
 callback:
