@@ -94,9 +94,6 @@ class Router
         } elseif (count($args) == 3 && is_callable($args[2])) {
             $callback = $args[2];
         }
-        if (!isset($intermediate) && isset($this->intermediate)) {
-            $intermediate = $this->intermediate;
-        }
         if (!isset($this->routes[$url])) {
             $this->routes[$url] = new Router($url, $intermediate);
         }
@@ -144,12 +141,16 @@ class Router
         $url = http_build_url('', $parts);
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match(.*)$@", $url, $matches)) {
-                $last = array_pop($matches);
-                unset($matches[0]);
-                if (!strlen($last)) {
-                    return call_user_func($router->state, $matches);
-                } elseif ($found = $router->resolve($url)) {
-                    return $found;
+                $parser = new ArgumentsParser($this->intermediate);
+                $args = $parser->parse($matches);
+                if (false !== call_user_func_array($this->intermediate, $args)) {
+                    $last = array_pop($matches);
+                    unset($matches[0]);
+                    if (!strlen($last)) {
+                        return call_user_func($router->state, $matches);
+                    } elseif ($found = $router->resolve($url)) {
+                        return $found;
+                    }
                 }
             }
         }
