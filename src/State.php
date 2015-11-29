@@ -11,7 +11,7 @@ class State
 
     public $name;
 
-    public function __construct($name, $state, array $arguments)
+    public function __construct($name, $state)
     {
         $this->name = $name;
         if (!is_callable($state)) {
@@ -21,19 +21,22 @@ class State
             };
         }
         $this->state = $state;
-        $this->arguments = $arguments;
     }
 
-    public function __invoke()
+    public function __invoke($payload)
     {
         $call = $this->state;
         do {
             $parser = new ArgumentsParser($call);
-            $args = $parser->parse($this->arguments);
+            $args = $parser($payload)['arguments'];
             $call = call_user_func_array($call, $args);
-            $this->arguments = [];
         } while (is_callable($call));
         return $call;
+    }
+
+    public function getCallback()
+    {
+        return $this->state;
     }
 }
 
