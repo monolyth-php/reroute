@@ -16,12 +16,12 @@ class State implements StageInterface
     {
         $this->name = $name;
         if (!is_callable($state)) {
-            $tmp = $state;
-            $state = function () use ($tmp) {
-                return $tmp;
+            $this->state = function () use ($state) {
+                return $state;
             };
+        } else {
+            $this->state = $state;
         }
-        $this->state = $state;
     }
 
     public function __invoke($payload)
