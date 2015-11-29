@@ -47,8 +47,8 @@ match `/bla/my-framework/libs/some/url/` if nothing better was defined.
 > route starts with `/` doesn't have any special meaning.
 
 What `then` returns can be really anything. If you pass a callable, that in turn
-should eventually return a string or something `__toString`able. Hence, the
-following four forms are equivalent:
+should eventually return something non-callable. Hence, the following four forms
+are equivalent:
 
 ```php
 <?php
@@ -64,7 +64,7 @@ class Foo
         return new Foo;
     }
 
-    public function __toString()
+    public function __invoke()
     {
         return 'Hello world!';
     }
@@ -73,21 +73,37 @@ $router->when('/some/url/')->then(new Foo);
 $router->when('/some/url/')->then(['Foo', 'getInstance']);
 ```
 
+### Named states
+When called with two parameters, the first parameter is assumed to be the
+(preferably unique) name of the state. Named states can be retrieved at any
+point by calling `get('name_of_state')` on the router:
+
+```
+<?php
+
+$router->when('/the/url/')->then('myname', 'handler');
+$state = $router->get('myname'); // Ok!
+$state instanceof Reroute\State; // true
+```
+
 ### Matching HTTP verbs
-The special `$VERB` parameter can be injected into the callback defined by
-`then`:
+By type hinting a parameter as an instance of
+`Psr\Http\Message\RequestInterface`, you can inject the original request object
+and check the used method (or anything else of course):
 
 ```php
 <?php
 
-$router->when('/some/url/')->then(function ($VERB) {
-    switch ($VERB) {
+use Psr\Http\Message\RequestInterface;
+
+$router->when('/some/url/')->then(function (RequestInterface $request) {
+    switch ($request->getMethod()) {
         case 'POST':
             // Perform some action
         case 'GET':
             return 'ok';
         default:
-            return "$VERB method not allowed.";
+            return $request->getMethod()." method not allowed.";
     }
 });
 ```
@@ -99,27 +115,32 @@ actually resolve the request:
 ```php
 <?php
 
-if ($state = $router->resolve($_SERVER['REQUEST_URI'])) {
-    echo $state();
+use Zend\Diactoros\ServerRequestFactory;
+
+if ($state = $router(ServerRequestFactory::fromGlobals())) {
+    echo $state;
 } else {
     // 404!
 }
 ```
 
-`resolve` returns a State object (if a match was found, otherwise `null`) which
-can ben `__invoke`d. This method actually invokes the defined callable
-(optionally forwarding calls if the callable's return value is itself callable)
-and should eventually return something to output (typically a string, but
-technically it can be any non-callable value like an array or object).
+(Note that you don't need to explicitly pass in a `ServerRequest` object, the
+router uses the current request by default.)
+
+Invoking the router starts a [pipeline](https://github.com/thephpleague/pipeline).
+By calling the router's `pipe` method you can add middleware to the stack.
+
+If a valid state was found for the current URL, it's return value is returned by
+the pipeline. Otherwise, it will resolve to `null`.
 
 > To emulate a different request type than the actual one, simply change
 >`$_SERVER['REQUEST_METHOD']`.
 
-### Passing parameters
+## Passing parameters
 Your URLs are actually regexes, so you can defined variables to pass into the
 callback:
 
-```
+```php
 <?php
 
 $router->when("/('name'\w+)/")->then(function ($name) {
@@ -127,67 +148,10 @@ $router->when("/('name'\w+)/")->then(function ($name) {
 });
 ```
 
-The order is not important, the Router will figure that out for you.
-
-### Short-circuiting
-Often it's handy to short-circuit a path part, e.g. because an authentication
-check failed. The optional second argument to `when` can be a callback, which
-gets passed the same optional matched parameters as `then` would. If the
-callback exists and returns `false` (note: not `null`, strict matching here!)
-the resolve is short-circuited. Of course, you could also throw an exception if
-that's more your style and catch it elsewhere:
-
-```
-<?php
-
-$router->when('/account/', function () {
-    // Check authentication...
-    // Did it fail?
-    return false;
-})->when('/profile/')->then('Only if logged in');
-```
-
-The route `/account/profile/` will never be matched if the authentication
-failed.
-
-### Grouping
-The previous example also illustrated the chainability of routes: each call to
-`when` returns a sub-router. If you have many paths under a base path (e.g.
-`/profile/`, `/password/`, `/email/` etc. under `/account/`) there are two ways
-to group those routes without having to duplicate `/account/` all the time:
-
-```
-<?php
-
-// Method 1: use an intermediate variable:
-$account = $router->when('/account/', function () { /* check */ });
-$account->when('/profile/')->then('profile');
-$account->when('/password/')->then('password');
-// etc.
-
-// Method 2: use the optional third callback argument to `when`:
-$router->when('/account/', function () { /* check */ }, function ($router) {
-    $router->when('/profile/')->then('profile');
-    $router->when('/password/')->then('password');
-    // etc.
-});
-```
-
-If your grouping doesn't need any intermediate check, you can also simply leave
-it out and the Router will figure it out:
-
-```
-<?php
-
-$router->when('/grouped/', function ($router) {
-    // ...
-});
-```
-
 ### Shorthand placeholders
 For simpler URLs, you can also use a few shorthand placeholders:
 
-```
+```php
 <?php
 
 $router->when("/('param'.*?)/");
@@ -195,26 +159,74 @@ $router->when('/:param/');
 $router->when('/{param}/');
 ```
 
-### Named states
-An extension of `when`, a named state can referred to by its name (duh). This is
-mostly useful if you later plan to generate a URL for a state in a view
-template:
+The order is not important, the Router will figure that out for you.
 
-```
+## Grouping
+The optional second argument to `when` is a callable, which expects a single
+parameter: a new (sub) router. All routes defined using `when` on the subrouter
+will inherit the parent router's URL:
+
+```php
 <?php
 
-$router->state('myname', '/the/url/')->then('handler');
-$myname = $router->get('myname'); // Ok!
+$router->when('/foo/', function ($router) {
+    $router->then('I match /foo/!');
+    $router->when('/bar/')->then('I match /foo/bar/!');
+});
 ```
 
-### Generating URLs
-Speaking of which, to generate a URL for a defined named state, use the
-`generate` method:
+Since `when` also returns the new subrouter, you can also use one of the
+following patterns if you prefer:
 
-```
+```php
 <?php
 
-$router->state('myname', '/:some/:params/')->then('handler');
+$router->when('/foo/')->when('/bar/')->then('I match /foo/bar/!');
+// ...or...
+$foo = $router->when('/foo/');
+$foo->when('/bar/')->then('I match /foo/bar/!');
+```
+
+For convenient chaining, `then` returns the (sub)router itself:
+```php
+<?php
+
+$router->when('/foo/')
+       ->then('I match /foo/!')
+       ->when('/bar/')
+       ->then('But I match /foo/bar/!');
+```
+
+## Pipelining middleware
+Since routes are pipelined, you can at any point add one or more calls to the
+`pipe` method to add middleware:
+
+```php
+<?php
+
+$router->when('/restricted/')
+    ->pipe(function ($payload) {
+        if (!user_is_authenticated()) {
+            // In the real world, probably raise an exception you can
+            // catch elsewhere and show a login page or something...
+            return null;
+        }
+        return $payload;
+    })
+    ->when('/super-secret-page/')
+    ->then('For authenticated eyes only!');
+```
+
+You can call `pipe` as often as you want. Subrouters won't be executed if the
+pipeline is short-circuited anywhere.
+
+## Generating URLs
+To generate a URL for a defined named state, use the `generate` method:
+
+```php
+<?php
+
+$router->when('/:some/:params/')->then('myname', 'handler');
 echo $router->generate('myname', ['some' => 'foo', 'params' => 'bar']);
 // outputs: /foo/bar/
 ```
@@ -222,40 +234,18 @@ echo $router->generate('myname', ['some' => 'foo', 'params' => 'bar']);
 The optional third parameter to generate is a boolean telling `generate` if it
 should prefer a route without scheme/host if the user is already on the current
 host. It defaults to true. The above example might output
-`http://localhost/foo/bar/` (`localhost` is used if nothing else was defined
-explicitly).
+`http://localhost/foo/bar/` if called with `false` as the third parameter.
 
 Generation is only possible for named states, since anonymous ones obviously
 could only be retrieved by their actual URL (in which case you might as well
 hardcode it...). Use named states if your URLs are likely to change over time!
 
-## Redirecting
-
-Reroute URLs support simple `301` or `302` redirects:
-
+## Handling 404s and other errors
 ```php
 <?php
 
-// Temporarily redirect to state "home":
-$router->redirect('home');
-// Permanently redirect to state "example":
-$router->move('example');
-
-```
-
-Optional second parameter is a hash of arguments as in `generate`.
-Note that if the Router detects the state being redirected to is already the
-current URL, nothing happens unless a third parameter `$force` is set to true.
-This could be useful when redirecting after a succesfull `POST` to prevent
-double-posting.
-
-## Handling 404s and other errors
-
-```
-<?php
-
-$router->state('404', null, function() {
-    echo "The URL did an oopsie!";
+$router->when(null)->then('404', function() {
+    return "The URL did an oopsie!";
 });
 
 ```
@@ -271,9 +261,10 @@ instead:
 ```php
 <?php
 
-if ($state = $router->resolve($_SERVER['REQUEST_URI'])) {
-    echo $state();
+if ($state = $router()) {
+    echo $state;
 } else {
+    // Note that we must "invoke" the state.
     echo $router->get('404')();
 }
 
