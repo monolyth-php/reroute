@@ -66,5 +66,10 @@ class ArgumentsParser implements StageInterface
         $payload['arguments'] = $args;
         return $payload;
     }
+
+    public function process($payload)
+    {
+        return $this($payload);
+    }
 }
 
