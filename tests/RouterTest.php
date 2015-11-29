@@ -1,5 +1,8 @@
 <?php
 
+namespace Reroute\Tests;
+
+use PHPUnit_Framework_TestCase;
 use Reroute\Router;
 use Reroute\Url\Flat;
 use Reroute\Url\Regex;
@@ -83,17 +86,14 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('ok', $state);
     }
 
+    /**
+     * @expectedException DomainException
+     */
     public function testInvalidStateThrowsException()
     {
         $router = new Router;
         $e = null;
-        $state = null;
-        try {
-            $state = $router->get('invalid');
-        } catch (DomainException $e) {
-        }
-        $this->assertEquals(null, $state);
-        $this->assertInstanceOf('DomainException', $e);
+        $state = $router->get('invalid');
     }
 
     public function testRouteNesting()
