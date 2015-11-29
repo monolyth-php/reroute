@@ -191,6 +191,9 @@ class RouterTest extends PHPUnit_Framework_TestCase
         );
         $this->assertEquals('http://foo.com/foo/bar/baz/', $url);
         $_SERVER['HTTP_HOST'] = 'foo.com';
+        $router = new Router;
+        $router->when("http://foo.com/(?'p1':\w+)/{p2}/:p3/")
+               ->then('test', function () {});
         $url = $router->generate(
             'test',
             ['p1' => 'foo', 'p2' => 'bar', 'p3' => 'baz']
