@@ -16,23 +16,27 @@ class ArgumentsParser
         }
         $parameters = $reflection->getParameters();
         $arguments = [];
+        $request = 'Psr\Http\Message\RequestInterface';
         foreach ($parameters as $value) {
-            $arguments[$value->name] = $value->name == 'VERB' ?
-                (isset($_SERVER['REQUEST_METHOD']) ?
-                    $_SERVER['REQUEST_METHOD'] :
-                    'GET') :
-                null;
+            if ($class = $value->getClass()
+                and $class->implementsInterface($request)
+            ) {
+                $arguments["RequestInterface"] = true;
+            } else {
+                $arguments[$value->name] = null;
+            }
         }
         $this->arguments = $arguments;
     }
 
-    public function parse(array $args)
+    public function __invoke($payload)
     {
         $remove = [];
+        $args = isset($payload['matches']) ? $payload['matches'] : [];
         while (false !== ($curr = each($args))) {
             if (is_string($curr['key'])
                 && array_key_exists($curr['key'], $this->arguments)
-            ) {  
+            ) {
                 $this->arguments[$curr['key']] = $curr['value'];
                 $remove[] = $curr['key'];
                 $next = each($args);
@@ -41,6 +45,9 @@ class ArgumentsParser
         }
         foreach ($remove as $key) {
             unset($args[$key]);
+        }
+        if (isset($this->arguments['RequestInterface'])) {
+            $this->arguments['RequestInterface'] = $payload['request'];
         }
         // For remaining arguments, use the next available index:
         array_walk($this->arguments, function (&$value) use (&$args) {
@@ -55,7 +62,8 @@ class ArgumentsParser
                 $args[] = $arg;
             }
         }
-        return $args;
+        $payload['arguments'] = $args;
+        return $payload;
     }
 }
 
