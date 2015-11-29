@@ -4,6 +4,10 @@ namespace Reroute;
 
 use DomainException;
 use ReflectionFunction;
+use Zend\Diactoros\ServerRequest;
+use Zend\Diactoros\Request;
+use League\Pipeline\PipelineBuilder;
+use League\Pipeline\Pipeline;
 
 class Router
 {
@@ -37,30 +41,38 @@ class Router
      *
      * @param string $url The path part _all_ URLs for this router must fall
      *  under in order to match.
-     * @param callable $intermediate Optional intermediate callback.
+     * @param League\Pipeline\Pipeline $pipe Optional pipeline to chain onto.
      * @return void
      */
-    public function __construct($url = null, callable $intermediate = null)
+    public function __construct($url = null, Pipeline $pipe = null)
     {
         $this->url = $this->normalize($url);
-        $this->intermediate = isset($intermediate) ?
-            $intermediate :
-            function () { return $this; };
+        $this->pipeline = new PipelineBuilder;
+        if (isset($pipe)) {
+            $this->pipeline->add($pipe);
+        }
+    }
+
+    public function pipe(callable $state)
+    {
+        $this->pipeline->add($state);
+        return $this;
     }
 
     /**
-     * Setup (part of) a URL for catching. The intermediate callback is called
-     * on match and before control is delegated to (sub) routers or `then`
+     * Setup (part of) a URL for catching. The chain is called on match and
+     * before control is delegated.
+     *
+     * to (sub) routers or `then`
      * calls.
      *
      * @param string|null $url The URL(part) to match for this state. If null,
      *  something randomly invalid is used (useful for defining named states for
      *  error pages).
-     * @param callable $intermediate Optional intermediate callback.
      * @param callable $callback Optional grouping callback.
      * @return Reroute\Router A new sub-router.
      */
-    public function when($url, callable $intermediate = null)
+    public function when($url, callable $callback = null)
     {
         if (is_null($url)) {
             $url = '!!!!'.rand(0, 999).microtime();
@@ -81,21 +93,8 @@ class Router
             isset($parts['host']) ? $parts['host'] : 'localhost'
         );
         $url = preg_replace("@(?<!:)/{2,}@", '/', $url);
-        $args = func_get_args();
-        if (count($args) == 2 && $intermediate) {
-            // If the second argument is a callable that groups, use that as a
-            // callback and empty the intermediate:
-            $reflect = new ReflectionFunction($intermediate);
-            $args = $reflect->getParameters();
-            if (count($args) == 1 && $args[0]->name == 'router') {
-                $callback = $intermediate;
-                $intermediate = null;
-            }
-        } elseif (count($args) == 3 && is_callable($args[2])) {
-            $callback = $args[2];
-        }
         if (!isset($this->routes[$url])) {
-            $this->routes[$url] = new Router($url, $intermediate);
+            $this->routes[$url] = new Router($url, $this->pipeline->build());
         }
         if (isset($callback)) {
             $callback($this->routes[$url]);
@@ -115,25 +114,28 @@ class Router
     public function then($name, $state)
     {
         $this->name = $name;
-        $this->state = function (array $matches) use ($name, $state) {
-            $parser = new ArgumentsParser($this->intermediate);
-            $args = $parser->parse($matches);
-            if (false !== call_user_func_array($this->intermediate, $args)) {
-                return new State($name, $state, $matches);
-            }
-        };
+        $this->state = new State($name, $state);
     }
 
     /**
-     * Attempt to resolve a Reroute\State associated with $url.
+     * Attempt to resolve a Reroute\State associated with a request.
      *
-     * @param string $url The url to resolve.
+     * @param mixed $payload Payload for the pipeline. For convenience, if
+     *  $payload is a Zend\Diactoros\ServerRequest, the payload is transformed
+     *  into a hash for subsequent calls.
      * @return Reroute\State|null If succesful, the corresponding state is
      *  returned, otherwise null (the implementor should then show a 404 or
      *  something else notifying the user).
      */
-    public function resolve($url)
+    public function __invoke($payload)
     {
+        if (is_object($payload) && $payload instanceof ServerRequest) {
+            $payload = ['request' => $payload];
+        }
+        extract($payload);
+        if (!isset($url)) {
+            $url = $request->getUri().'';
+        }
         $url = $this->normalize($url);
         $parts = parse_url($url);
         unset($parts['query'], $parts['fragment']);
@@ -141,16 +143,16 @@ class Router
         $url = http_build_url('', $parts);
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match(.*)$@", $url, $matches)) {
-                $parser = new ArgumentsParser($this->intermediate);
-                $args = $parser->parse($matches);
-                if (false !== call_user_func_array($this->intermediate, $args)) {
-                    $last = array_pop($matches);
-                    unset($matches[0]);
-                    if (!strlen($last)) {
-                        return call_user_func($router->state, $matches);
-                    } elseif ($found = $router->resolve($url)) {
-                        return $found;
-                    }
+                $last = array_pop($matches);
+                unset($matches[0]);
+                $payload += compact('url', 'matches');
+                if (!strlen($last)) {
+                    $this->pipe($router->state);
+                    return $this->pipeline
+                        ->build()
+                        ->process($payload);
+                } else {
+                    return $router($payload);
                 }
             }
         }
