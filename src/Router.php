@@ -139,6 +139,11 @@ class Router implements StageInterface
         return $this;
     }
 
+    public function process($payload)
+    {
+        return $this($payload);
+    }
+
     /**
      * Attempt to resolve a Reroute\State associated with a request.
      *

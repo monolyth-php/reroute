@@ -35,6 +35,11 @@ class State implements StageInterface
         return $call;
     }
 
+    public function process($payload)
+    {
+        return $this($payload);
+    }
+
     public function getCallback()
     {
         return $this->state;
