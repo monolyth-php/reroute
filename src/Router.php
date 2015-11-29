@@ -116,6 +116,7 @@ class Router implements StageInterface
     {
         $this->name = $name;
         $this->state = new State($name, $state);
+        return $this;
     }
 
     /**
