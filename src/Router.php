@@ -8,8 +8,9 @@ use Zend\Diactoros\ServerRequest;
 use Zend\Diactoros\Request;
 use League\Pipeline\PipelineBuilder;
 use League\Pipeline\Pipeline;
+use League\Pipeline\StageInterface;
 
-class Router
+class Router implements StageInterface
 {
     /**
      * Array storing defined routes.

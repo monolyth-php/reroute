@@ -3,8 +3,9 @@
 namespace Reroute;
 
 use Exception;
+use League\Pipeline\StageInterface;
 
-class State
+class State implements StageInterface
 {
     private $state;
     private $arguments = [];

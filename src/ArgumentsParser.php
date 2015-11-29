@@ -4,8 +4,9 @@ namespace Reroute;
 
 use ReflectionMethod;
 use ReflectionFunction;
+use League\Pipeline\StageInterface;
 
-class ArgumentsParser
+class ArgumentsParser implements StageInterface
 {
     public function __construct(callable $call)
     {
