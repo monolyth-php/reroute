@@ -21,5 +21,11 @@
         "psr-4": {
             "Reroute\\": "src"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Reroute\\": "src",
+            "Reroute\\Tests\\": "tests"
+        }
     }
 }
