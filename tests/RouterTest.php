@@ -7,23 +7,24 @@ use Reroute\Url\Legacy;
 use Reroute\Url\Angular;
 use Reroute\Url\Braces;
 use Reroute\Url\Nomatch;
+use Zend\Diactoros\ServerRequestFactory;
+use Psr\Http\Message\RequestInterface;
 
 class RouterTest extends PHPUnit_Framework_TestCase
 {
-    public function testResolveReturnsState()
+    protected function setup()
     {
-        $router = new Router;
-        $router->when('/')->then('foo', 'Hello world');
-        $state = $router->resolve('/');
-        $this->assertInstanceOf('Reroute\State', $state);
+        $_SERVER['HTTP_HOST'] = 'localhost';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
     }
 
     public function testBasicRoute()
     {
         $router = new Router;
         $router->when('/')->then('foo', 'Hello world!');
-        $state = $router->resolve('/');
-        $this->assertEquals('Hello world!', $state());
+        $_SERVER['REQUEST_URI'] = '/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals('Hello world!', $state);
     }
 
     public function unnamedParameter()
@@ -32,7 +33,8 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $router->when("/(\d+)/")->then('foo', function ($id) {
             return $id;
         });
-        $state = $router->resolve('/1/');
+        $_SERVER['REQUEST_URI'] = '/1/';
+        $state = $router(ServerRequestFactory::fromGlobals());
         $this->assetEquals(1, $state());
     }
 
@@ -42,8 +44,9 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $router->when("/(?'id'\d+)/")->then('foo', function ($id) {
             return $id;
         });
-        $state = $router->resolve('/1/');
-        $this->assertEquals(1, $state());
+        $_SERVER['REQUEST_URI'] = '/1/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals(1, $state);
     }
 
     public function testParameterOrder()
@@ -53,27 +56,31 @@ class RouterTest extends PHPUnit_Framework_TestCase
                ->then('foo', function ($last, $first) {
                     return "$first $last";
                });
-        $state = $router->resolve('/john/doe/');
-        $this->assertEquals('john doe', $state());
+        $_SERVER['REQUEST_URI'] = '/john/doe/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals('john doe', $state);
     }
 
-    public function testVerbInRandomPlace()
+    public function testRequestInRandomPlace()
     {
         $router = new Router;
         $router->when("/(?'foo'\w+)/(\w+)/")
-               ->then('foo', function ($bar, $VERB, $foo) {
+               ->then('foo', function ($bar, RequestInterface $request, $foo) {
+                    $VERB = $request->getMethod();
                     return "$bar $VERB $foo";
                });
-        $state = $router->resolve('/foo/bar/');
-        $this->assertEquals('bar GET foo', $state());
+        $_SERVER['REQUEST_URI'] = '/foo/bar/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals('bar GET foo', $state);
     }
 
     public function testIgnoreGetParameters()
     {
         $router = new Router;
-        $router->when('/')->then('foo', function () {});
-        $state = $router->resolve('/?foo=bar');
-        $this->assertInstanceOf('Reroute\State', $state);
+        $router->when('/')->then('foo', function () { return 'ok'; });
+        $_SERVER['REQUEST_URI'] = '/?foo=bar';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals('ok', $state);
     }
 
     public function testInvalidStateThrowsException()
@@ -93,19 +100,23 @@ class RouterTest extends PHPUnit_Framework_TestCase
     {
         $router = new Router;
         $router->when('/foo/')
-               ->when('/bar/')->then('foo', function () {});
-        $state = $router->resolve('/foo/bar/');
-        $this->assertInstanceOf('Reroute\State', $state);
+               ->when('/bar/')->then('foo', function () { return 'ok'; });
+        $_SERVER['REQUEST_URI'] = '/foo/bar/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals('ok', $state);
     }
 
     public function testRouteCallbackNesting()
     {
         $router = new Router;
         $router->when('/foo/', function ($router) {
-            $router->when('/bar/')->then('foo', function () {});
+            $router->when('/bar/')->then('foo', function () {
+                return 'ok';
+            });
         });
-        $state = $router->resolve('/foo/bar/');
-        $this->assertInstanceOf('Reroute\State', $state);
+        $_SERVER['REQUEST_URI'] = '/foo/bar/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals('ok', $state);
     }
 
     public function testRouteHost()
@@ -121,38 +132,52 @@ class RouterTest extends PHPUnit_Framework_TestCase
                 return 'bar';
             });
         });
-        $state = $router->resolve('http://foo.com/foo/');
-        $this->assertEquals('foo', $state());
-        $state = $router->resolve('http://foo.com/bar/');
+        $_SERVER['HTTP_HOST'] = 'foo.com';
+        $_SERVER['REQUEST_URI'] = '/foo/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals('foo', $state);
+        $_SERVER['REQUEST_URI'] = '/bar/';
+        $state = $router(ServerRequestFactory::fromGlobals());
         $this->assertEquals(null, $state);
-        $state = $router->resolve('http://bar.com/bar/');
-        $this->assertEquals('bar', $state());
-        $state = $router->resolve('http://bar.com/foo/');
+        $_SERVER['HTTP_HOST'] = 'bar.com';
+        $_SERVER['REQUEST_URI'] = '/bar/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals('bar', $state);
+        $_SERVER['REQUEST_URI'] = '/foo/';
+        $state = $router(ServerRequestFactory::fromGlobals());
         $this->assertEquals(null, $state);
     }
 
     public function testAngular()
     {
         $router = new Router;
-        $router->when('/:angular/')->then('foo', function () {});
-        $state = $router->resolve('/somestring/');
-        $this->assertInstanceOf('Reroute\State', $state);
+        $router->when('/:angular/')->then('foo', function ($angular) {
+            return $angular;
+        });
+        $_SERVER['REQUEST_URI'] = '/somestring/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals('somestring', $state);
     }
 
     public function testBraces()
     {
         $router = new Router;
-        $router->when('/{braces}/')->then('foo', function () {});
-        $state = $router->resolve('/somestring/');
-        $this->assertInstanceOf('Reroute\State', $state);
+        $router->when('/{braces}/')->then('foo', function ($braces) {
+            return $braces;
+        });
+        $_SERVER['REQUEST_URI'] = '/somestring/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        $this->assertEquals('somestring', $state);
     }
 
     public function testNomatchUrl()
     {
         $router = new Router;
-        $router->when(null)->then('404', function() {});
+        $router->when(null)->then('404', function() {
+            return '404';
+        });
         $state = $router->get('404');
-        $this->assertInstanceOf('Reroute\State', $state);
+        $this->assertEquals('404', $state);
     }
 
     public function testGenerate()
@@ -166,6 +191,9 @@ class RouterTest extends PHPUnit_Framework_TestCase
         );
         $this->assertEquals('http://foo.com/foo/bar/baz/', $url);
         $_SERVER['HTTP_HOST'] = 'foo.com';
+        $router = new Router;
+        $router->when("http://foo.com/(?'p1':\w+)/{p2}/:p3/")
+               ->then('test', function () {});
         $url = $router->generate(
             'test',
             ['p1' => 'foo', 'p2' => 'bar', 'p3' => 'baz']
