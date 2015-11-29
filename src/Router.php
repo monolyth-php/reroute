@@ -5,6 +5,7 @@ namespace Reroute;
 use DomainException;
 use ReflectionFunction;
 use Zend\Diactoros\ServerRequest;
+use Zend\Diactoros\ServerRequestFactory;
 use Zend\Diactoros\Request;
 use League\Pipeline\PipelineBuilder;
 use League\Pipeline\Pipeline;
@@ -13,24 +14,33 @@ use League\Pipeline\StageInterface;
 class Router implements StageInterface
 {
     /**
+     * @var array
      * Array storing defined routes.
      */
     protected $routes = [];
 
     /**
+     * @var Reroute\State
      * Endstate for this route.
      */
     protected $state;
 
     /**
+     * @var Zend\Diactoros\ServerRequest
+     * Request object for the current request.
+     */
+    protected $request;
+
+    /**
+    * @var string
      * Host to use for every URL. Defaults to http://localhost
-     *
      * Note that this is fine if all URLs are on the same domain anyway, and
      * you're not passing the host name during resolve.
      */
     protected $host = 'http://localhost';
 
     /**
+     * @var string
      * Name of the current endstate.
      */
     protected $name = null;
@@ -47,6 +57,7 @@ class Router implements StageInterface
      */
     public function __construct($url = null, Pipeline $pipe = null)
     {
+        $this->request = ServerRequestFactory::fromGlobals();
         $this->url = $this->normalize($url);
         $this->pipeline = new PipelineBuilder;
         if (isset($pipe)) {
@@ -54,9 +65,14 @@ class Router implements StageInterface
         }
     }
 
-    public function pipe(callable $state)
+    /**
+     * Adds a callable to the pipeline.
+     *
+     * @param callable $stage Callable stage to add.
+     */
+    public function pipe(callable $stage)
     {
-        $this->pipeline->add($state);
+        $this->pipeline->add($stage);
         return $this;
     }
 
@@ -104,16 +120,20 @@ class Router implements StageInterface
     }
 
     /**
-     * If the current REQUEST_URI ends with this URL, yield the associated
+     * If the current request URI ends with this URL, yield the associated
      * state. A state can be anything but will get wrapped in a `State` object.
      *
-     * @param string $name The (preferably) unique name of this state.
+     * @param string $name The (preferably) unique optional name of this state.
      * @param mixed $state A valid state for the matched URL.
-     * @return Reroute\State A State object.
+     * @return self The current router, for chaining.
      * @see Reroute\Route::generate
      */
-    public function then($name, $state)
+    public function then($name, $state = null)
     {
+        if (!isset($state)) {
+            $state = $name;
+            $name = null;
+        }
         $this->name = $name;
         $this->state = new State($name, $state);
         return $this;
@@ -129,12 +149,20 @@ class Router implements StageInterface
      *  returned, otherwise null (the implementor should then show a 404 or
      *  something else notifying the user).
      */
-    public function __invoke($payload)
+    public function __invoke($payload = null)
     {
         if (is_object($payload) && $payload instanceof ServerRequest) {
             $payload = ['request' => $payload];
         }
-        extract($payload);
+        if (isset($payload) && is_array($payload)) {
+            extract($payload);
+        }
+        if (!isset($request)) {
+            $request = $this->request;
+        }
+        if (!isset($payload)) {
+            $payload = compact('request');
+        }
         if (!isset($url)) {
             $url = $request->getUri().'';
         }
@@ -173,6 +201,18 @@ class Router implements StageInterface
         return call_user_func($state->state, []);
     }
 
+    /**
+     * Generate a URI for a named state, using optional $arguments.
+     *
+     * @param string $name The name of the state for which we're building a URI.
+     * @param array $arguments Optional hash of arguments to inject into the
+     *  URI. The keys can be either the argument names, or you can pass them in
+     *  the correct order with numeric indices.
+     * @param bool $shortest If true (the default), the generated URI won't
+     *  include scheme/hostname if they are the same as for the current request.
+     * @return string A URI pointing to the requested state.
+     * @throws DomainException if no state called `$name` exists.
+     */
     public function generate($name, array $arguments = [], $shortest = true)
     {
         if (!($state = $this->findStateRecursive($name))) {
@@ -203,31 +243,19 @@ class Router implements StageInterface
                 $url = str_replace($var, '', $url);
             }
         }
-        if ($shortest && isset($_SERVER['HTTP_HOST'])) {
-            $current = $this->currentHost();
-            $url = preg_replace("@^$current@", '', $url);
+        if ($shortest and $current = $this->currentHost()) {
+            $url = preg_replace("@^$current@", '/', $url);
         }
         return $url;
     }
 
-    public function redirect($name, array $arguments = [], $force = false)
-    {
-        $url = $this->generate($name, $arguments, false);
-        if ($url != $this->currentUrl() || $force) {
-            header("Location: $url", true, 302);
-            die();
-        }
-    }
-
-    public function move($name, array $arguments = [], $force = false)
-    {
-        $url = $this->generate($name, $arguments, false);
-        if ($url != $this->currentUrl() || $force) {
-            header("Location: $url", true, 301);
-            die();
-        }
-    }
-
+    /**
+     * Internal helper method to recurse through subrouters when looking up a
+     * named state.
+     *
+     * @param string $name The name of the state to find.
+     * @return Reroute\State|null The found State on success, or null.
+     */
     protected function findStateRecursive($name)
     {
         if (!isset($this->state) || $this->name != $name) {
@@ -241,6 +269,15 @@ class Router implements StageInterface
         return $this;
     }
 
+    /**
+     * Internal helper method to "normalize" the current URI (e.g. make sure
+     * it has a scheme and a host).
+     *
+     * @param string $url The URL to normalize.
+     * @param string $scheme Optional fallback scheme. Defaults to `'http'`.
+     * @param string $host Optional fallback host. Defaults to `'localhost'`.
+     * @return string A fully formed URI.
+     */
     protected function normalize($url, $scheme = 'http', $host = 'localhost')
     {
         $parts = parse_url($url);
@@ -250,18 +287,27 @@ class Router implements StageInterface
         return "$scheme://$host$url";
     }
 
+    /**
+     * Returns the current host (e.g. `'http://localhost/'`).
+     *
+     * @return string The current host.
+     */
     public function currentHost()
     {
-        $protocol = 'http';
-        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') {
-            $protocol = 'https';
-        }
-        return "$protocol://{$_SERVER['HTTP_HOST']}";
+        $url = $this->request->getUri();
+        $parts = parse_url($url);
+        unset($parts['query'], $parts['fragment'], $parts['path']);
+        return http_build_url($parts);
     }
 
+    /**
+     * Return the full current URI, without query and fragment parts.
+     *
+     * @return string The current URI.
+     */
     public function currentUrl()
     {
-        $url = $this->currentHost().$_SERVER['REQUEST_URI'];
+        $url = $this->request->getUri();
         $parts = parse_url($url);
         unset($parts['query'], $parts['fragment']);
         return http_build_url($parts);
