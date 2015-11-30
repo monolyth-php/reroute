@@ -3,8 +3,8 @@ Flexible PHP5 HTTP router, with support for various types of URL matching,
 URL arguments, custom state handling and URL generation. Reroute is designed
 to be usable in any type of project or framework.
 
-Homepage: http://monomelodies.github.io/reroute/
-Full documentation: http://reroute.readthedocs.org/en/latest/
+- [Homepage](http://monomelodies.github.io/reroute/)
+- [Full documentation](http://reroute.readthedocs.org/en/latest/)
 
 ## Installation
 
@@ -12,21 +12,53 @@ Full documentation: http://reroute.readthedocs.org/en/latest/
 
 Add "monomelodies/reroute" to your `composer.json` requirements:
 
-    {
-        "require": {
-            "monomelodies/reroute": "^1.0.0"
-        }
+```json
+{
+    "require": {
+        "monomelodies/reroute": "^1.0.0"
     }
+}
+```
 
 ### Manual installation
 
 1. Get the code;
-  1. Clone the repository, e.g. from GitHub;
-  2. Download the ZIP (e.g. from Github) and extract.
+    1. Clone the repository, e.g. from GitHub;
+    2. Download the ZIP (e.g. from Github) and extract.
 2. Make your project recognize Reroute:
-  1. Register `/path/to/reroute/src` for the namespace `Reroute\\` in your
-     PSR-4 autoloader (recommended);
-  2. Alternatively, manually `include` the files you need.
+    1. Register `/path/to/reroute/src` for the namespace `Reroute\\` in your
+       PSR-4 autoloader (recommended);
+    2. Alternatively, manually `include` the files you need.
+
+## Basic usage
+These examples assume the `Reroute\Router` or an extending class is defined as
+`$router` in all scripts.
+
+### Defining routes
+```php
+<?php
+
+$router->state('root-name', new Flat('/root/url/'), function () {
+    // do something, e.g. load views, templates or controller
+});
+
+```
+
+### Resolving URLs
+```php
+<?php
+
+if ($state = $router->resolve('/root/url/')) {
+    $state->run();
+}
+
+```
+
+### Generating URLs
+```html
+<a href="<?=$router->get('root-name')->url()->generate()?>">click me</a>
+
+```
 
 ## Defining routes
 
