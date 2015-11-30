@@ -173,11 +173,12 @@ class RouterTest extends PHPUnit_Framework_TestCase
     public function testNomatchUrl()
     {
         $router = new Router;
-        $router->when(null)->then('404', function() {
-            return '404';
-        });
+        $router->when(null)->then('404', '404');
         $state = $router->get('404');
-        $this->assertEquals('404', $state);
+        $this->assertEquals(
+            '404',
+            $state([], ServerRequestFactory::fromGlobals())
+        );
     }
 
     public function testGenerate()
