@@ -4,9 +4,9 @@ namespace Reroute;
 
 use ReflectionMethod;
 use ReflectionFunction;
-use League\Pipeline\StageInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
-class ArgumentsParser implements StageInterface
+class ArgumentsParser
 {
     public function __construct(callable $call)
     {
@@ -30,10 +30,10 @@ class ArgumentsParser implements StageInterface
         $this->arguments = $arguments;
     }
 
-    public function __invoke($payload)
+    public function parse($matches, ServerRequestInterface $request)
     {
         $remove = [];
-        $args = isset($payload['matches']) ? $payload['matches'] : [];
+        $args = isset($matches) ? $matches : [];
         while (false !== ($curr = each($args))) {
             if (is_string($curr['key'])
                 && array_key_exists($curr['key'], $this->arguments)
@@ -48,7 +48,7 @@ class ArgumentsParser implements StageInterface
             unset($args[$key]);
         }
         if (isset($this->arguments['RequestInterface'])) {
-            $this->arguments['RequestInterface'] = $payload['request'];
+            $this->arguments['RequestInterface'] = $request;
         }
         // For remaining arguments, use the next available index:
         array_walk($this->arguments, function (&$value) use (&$args) {
@@ -63,13 +63,7 @@ class ArgumentsParser implements StageInterface
                 $args[] = $arg;
             }
         }
-        $payload['arguments'] = $args;
-        return $payload;
-    }
-
-    public function process($payload)
-    {
-        return $this($payload);
+        return $args;
     }
 }
 
