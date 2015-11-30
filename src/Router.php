@@ -4,6 +4,7 @@ namespace Reroute;
 
 use DomainException;
 use ReflectionFunction;
+use Psr\Http\Message\ServerRequestInterface;
 use Zend\Diactoros\ServerRequest;
 use Zend\Diactoros\ServerRequestFactory;
 use Zend\Diactoros\Request;
@@ -147,26 +148,16 @@ class Router implements StageInterface
     /**
      * Attempt to resolve a Reroute\State associated with a request.
      *
-     * @param mixed $payload Payload for the pipeline. For convenience, if
-     *  $payload is a Zend\Diactoros\ServerRequest, the payload is transformed
-     *  into a hash for subsequent calls.
+     * @param Psr\Http\Message\ServerRequestInterface $request The request to
+     *  handle. Defaults to the current request.
      * @return Reroute\State|null If succesful, the corresponding state is
      *  returned, otherwise null (the implementor should then show a 404 or
      *  something else notifying the user).
      */
-    public function __invoke($payload = null)
+    public function __invoke(ServerRequestInterface $request = null)
     {
-        if (is_object($payload) && $payload instanceof ServerRequest) {
-            $payload = ['request' => $payload];
-        }
-        if (isset($payload) && is_array($payload)) {
-            extract($payload);
-        }
         if (!isset($request)) {
             $request = $this->request;
-        }
-        if (!isset($payload)) {
-            $payload = compact('request');
         }
         if (!isset($url)) {
             $url = $request->getUri().'';
@@ -180,14 +171,20 @@ class Router implements StageInterface
             if (preg_match("@^$match(.*)$@", $url, $matches)) {
                 $last = array_pop($matches);
                 unset($matches[0]);
-                $payload += compact('url', 'matches');
                 if (!strlen($last)) {
-                    $this->pipe($router->state);
+                    $this->pipe(new Stage(
+                        function ($request) use ($matches, $router) {
+                            return $router->state->__invoke(
+                                $matches,
+                                $this->request
+                            );
+                        }
+                    ));
                     return $this->pipeline
                         ->build()
-                        ->process($payload);
+                        ->process($request);
                 } else {
-                    return $router($payload);
+                    return $router($request);
                 }
             }
         }
@@ -203,7 +200,7 @@ class Router implements StageInterface
         if (!($state = $this->findStateRecursive($name))) {
             throw new DomainException("Unknown state: $name");
         }
-        return call_user_func($state->state, []);
+        return $state->state;
     }
 
     /**
