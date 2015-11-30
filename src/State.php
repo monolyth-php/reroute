@@ -2,87 +2,47 @@
 
 namespace Reroute;
 
-use ReflectionMethod;
-use ReflectionFunction;
-use ReflectionException;
-use BadMethodCallException;
+use Exception;
+use League\Pipeline\StageInterface;
 
-class State
+class State implements StageInterface
 {
-    private $host;
-    private $url;
     private $state;
-    private $verb = null;
     private $arguments = [];
-    private $group = null;
 
-    public function __construct($host, Url $url, callable $state)
-    {
-        $this->host = $host;
-        $url->setHost($host);
-        $this->url = $url;
-        $this->state = $state;
-    }
+    public $name;
 
-    public function group($group = null)
+    public function __construct($name, $state)
     {
-        if (isset($group)) {
-            $this->group = $group;
+        $this->name = $name;
+        if (!is_callable($state)) {
+            $this->state = function () use ($state) {
+                return $state;
+            };
+        } else {
+            $this->state = $state;
         }
-        return $this->group;
     }
 
-    public function match($url, $verb)
-    {
-        $arguments = $this->url->match($url, $verb);
-        if (!is_null($arguments)) {
-            $this->arguments = $arguments;
-            $this->verb = $verb;
-            return true;
-        }
-        return false;
-    }
-
-    public function run()
+    public function __invoke($payload)
     {
         $call = $this->state;
         do {
-            if (is_object($call) && method_exists($call, '__invoke')) {
-                $reflection = new ReflectionMethod($call, '__invoke');
-            } else {
-                $reflection = new ReflectionFunction($call);
-            }
-            $parameters = $reflection->getParameters();
-            $arguments = [];
-            foreach ($parameters as $key => $value) {
-                if (isset($this->arguments[$value->name])) {
-                    $arguments[] = $this->arguments[$value->name];
-                } elseif (isset($this->arguments[$key])) {
-                    $arguments[] = $this->arguments[$key];
-                } elseif ($value->name == 'VERB') {
-                    $arguments[] = $this->verb;
-                } else {
-                    try {
-                        $arguments[] = $value->getDefaultValue();
-                    } catch (ReflectionException $e) {
-                        throw new BadMethodCallException;
-                    }
-                }
-            }
-            $call = call_user_func_array($call, $arguments);
-            $this->arguments = [];
+            $parser = new ArgumentsParser($call);
+            $args = $parser($payload)['arguments'];
+            $call = call_user_func_array($call, $args);
         } while (is_callable($call));
         return $call;
     }
 
-    public function verb()
+    public function process($payload)
     {
-        return $this->verb;
+        return $this($payload);
     }
 
-    public function url()
+    public function getCallback()
     {
-        return $this->url;
+        return $this->state;
     }
 }
 

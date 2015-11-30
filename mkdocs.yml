@@ -1,13 +1,8 @@
 site_name: Reroute documentation
+site_url: http://reroute.monomelodies.nl/docs/
+repo_url: https://github.com/monomelodies/reroute
+
 pages:
 - Home:
     - 'Quickstart': 'index.md'
-- Usage:
-    - 'Types of URLs': 'usage/types.md'
-    - 'Structuring your routes': 'usage/structuring.md'
-    - 'Error handling': 'usage/errors.md'
-- API reference:
-    - 'Route': 'api/router.md'
-    - 'State': 'api/state.md'
-    - 'URL': 'api/url.md'
 
