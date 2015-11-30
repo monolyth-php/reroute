@@ -2,9 +2,12 @@ site_name: Reroute documentation
 pages:
 - Home:
     - 'Quickstart': 'index.md'
+- Usage:
+    - 'Types of URLs': 'usage/types.md'
+    - 'Structuring your routes': 'usage/structuring.md'
+    - 'Error handling': 'usage/errors.md'
 - API reference:
     - 'Route': 'api/router.md'
     - 'State': 'api/state.md'
     - 'URL': 'api/url.md'
 
-theme: united
