@@ -3,9 +3,9 @@
 namespace Reroute;
 
 use Exception;
-use League\Pipeline\StageInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
-class State implements StageInterface
+class State
 {
     private $state;
     private $arguments = [];
@@ -24,20 +24,15 @@ class State implements StageInterface
         }
     }
 
-    public function __invoke($payload)
+    public function __invoke($arguments, ServerRequestInterface $request)
     {
         $call = $this->state;
+        $parser = new ArgumentsParser($call);
         do {
-            $parser = new ArgumentsParser($call);
-            $args = $parser($payload)['arguments'];
+            $args = $parser->parse($arguments, $request);
             $call = call_user_func_array($call, $args);
         } while (is_callable($call));
         return $call;
-    }
-
-    public function process($payload)
-    {
-        return $this($payload);
     }
 
     public function getCallback()
