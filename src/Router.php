@@ -174,8 +174,7 @@ class Router implements StageInterface
                 $last = array_pop($matches);
                 unset($matches[0]);
                 if (!strlen($last)) {
-                    return $this->pipeline
-                        ->build()
+                    return $router->pipeline->build()
                         ->pipe(new Stage(
                             function ($request) use ($matches, $router) {
                                 if ($request instanceof ServerRequestInterface) {
@@ -194,8 +193,8 @@ class Router implements StageInterface
                             }
                         ))
                         ->process($this->request);
-                } else {
-                    return $router($this->request);
+                } elseif ($response = $router($this->request)) {
+                    return $response;
                 }
             }
         }
