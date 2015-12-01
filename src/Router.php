@@ -72,6 +72,9 @@ class Router implements StageInterface
      */
     public function pipe(callable $stage)
     {
+        if (!($stage instanceof Stage)) {
+            $stage = new Stage($stage);
+        }
         $this->pipeline->add($stage);
         return $this;
     }
