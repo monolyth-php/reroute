@@ -5,9 +5,8 @@ namespace Reroute;
 use DomainException;
 use ReflectionFunction;
 use Psr\Http\Message\ServerRequestInterface;
-use Zend\Diactoros\ServerRequest;
+use Psr\Http\Message\ResponseInterface;
 use Zend\Diactoros\ServerRequestFactory;
-use Zend\Diactoros\Request;
 use League\Pipeline\PipelineBuilder;
 use League\Pipeline\Pipeline;
 use League\Pipeline\StageInterface;
@@ -27,7 +26,7 @@ class Router implements StageInterface
     protected $state;
 
     /**
-     * @var Zend\Diactoros\ServerRequest
+     * @var Psr\Http\Message\ServerRequestInterface
      * Request object for the current request.
      */
     protected $request;
@@ -174,9 +173,18 @@ class Router implements StageInterface
                 if (!strlen($last)) {
                     $this->pipe(new Stage(
                         function ($request) use ($matches, $router) {
-                            return $router->state->__invoke(
-                                $matches,
-                                $this->request
+                            if ($request instanceof ServerRequestInterface) {
+                                return $router->state->__invoke(
+                                    $matches,
+                                    $request
+                                );
+                            } elseif ($request instanceof ResponseInterface) {
+                                return $request;
+                            }
+                            throw new DomainException(
+                                "The pipeline must resolve either with a custom
+                                 Psr\Http\Message\ResponseInterface, or with the
+                                 original request."
                             );
                         }
                     ));
