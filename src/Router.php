@@ -171,25 +171,25 @@ class Router implements StageInterface
                 $last = array_pop($matches);
                 unset($matches[0]);
                 if (!strlen($last)) {
-                    $this->pipe(new Stage(
-                        function ($request) use ($matches, $router) {
-                            if ($request instanceof ServerRequestInterface) {
-                                return $router->state->__invoke(
-                                    $matches,
-                                    $request
-                                );
-                            } elseif ($request instanceof ResponseInterface) {
-                                return $request;
-                            }
-                            throw new DomainException(
-                                "The pipeline must resolve either with a custom
-                                 Psr\Http\Message\ResponseInterface, or with the
-                                 original request."
-                            );
-                        }
-                    ));
                     return $this->pipeline
                         ->build()
+                        ->pipe(new Stage(
+                            function ($request) use ($matches, $router) {
+                                if ($request instanceof ServerRequestInterface) {
+                                    return $router->state->__invoke(
+                                        $matches,
+                                        $request
+                                    );
+                                } elseif ($request instanceof ResponseInterface) {
+                                    return $request;
+                                }
+                                throw new DomainException(
+                                    "The pipeline must resolve either with a custom
+                                     Psr\Http\Message\ResponseInterface, or with the
+                                     original request."
+                                );
+                            }
+                        ))
                         ->process($this->request);
                 } else {
                     return $router($this->request);
