@@ -156,11 +156,11 @@ class Router implements StageInterface
      */
     public function __invoke(ServerRequestInterface $request = null)
     {
-        if (!isset($request)) {
-            $request = $this->request;
+        if (isset($request)) {
+            $this->request = $request;
         }
         if (!isset($url)) {
-            $url = $request->getUri().'';
+            $url = $this->request->getUri().'';
         }
         $url = $this->normalize($url);
         $parts = parse_url($url);
@@ -182,9 +182,9 @@ class Router implements StageInterface
                     ));
                     return $this->pipeline
                         ->build()
-                        ->process($request);
+                        ->process($this->request);
                 } else {
-                    return $router($request);
+                    return $router($this->request);
                 }
             }
         }
