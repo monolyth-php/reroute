@@ -3,7 +3,9 @@
 namespace Reroute;
 
 use DomainException;
+use InvalidArgumentException;
 use ReflectionFunction;
+use ReflectionMethod;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Zend\Diactoros\ServerRequestFactory;
@@ -46,6 +48,12 @@ class Router implements StageInterface
     protected $name = null;
 
     /**
+     * @var array
+     * Hash of matched arguments for the resolved route.
+     */
+    protected $matchedArguments;
+
+    /**
      * Constructor. In most cases you won't need to worry about the constructor
      * arguments, but optionally you can pass a path part all routes _must_
      * match (e.g. if Reroute only needs to catch parts of your project).
@@ -66,16 +74,36 @@ class Router implements StageInterface
     }
 
     /**
-     * Adds a callable to the pipeline.
+     * Adds a callable to the pipeline. The first argument is the payload (i.e.
+     * request or response object). Subsequent arguments are taken from the
+     * currently matched URL parameters.
      *
      * @param callable $stage Callable stage to add.
+     * @throws InvalidArgumentException if any of the additional argument wasn't
+     *  matched by name in the URL.
      */
     public function pipe(callable $stage)
     {
-        if (!($stage instanceof Stage)) {
-            $stage = new Stage($stage);
-        }
-        $this->pipeline->add($stage);
+        $this->pipeline->add(new Stage(function ($payload) use ($stage) {
+            $reflection = $stage instanceof Closure ?
+                new ReflectionFunction($stage) :
+                new ReflectionMethod($stage, '__invoke');
+            $parameters = $reflection->getParameters();
+            $args = [];
+            foreach ($parameters as $key => $param) {
+                if (!$key) {
+                    $args[] = $payload;
+                } elseif (isset($this->matchedArguments[$param->name])) {
+                    $args[] = $this->matchedArguments[$param->name];
+                } else {
+                    throw new InvalidArgumentException(
+                        "Pipe expects variable {$param->name}, but it is not ".
+                        "present in the URL being resolved."
+                    );
+                }
+            }
+            return call_user_func_array($stage, $args);
+        }));
         return $this;
     }
 
@@ -174,6 +202,7 @@ class Router implements StageInterface
                 $last = array_pop($matches);
                 unset($matches[0]);
                 if (!strlen($last)) {
+                    $router->matchedArguments = $matches;
                     return $router->pipeline->build()
                         ->pipe(new Stage(
                             function ($request) use ($matches, $router) {
@@ -186,9 +215,9 @@ class Router implements StageInterface
                                     return $request;
                                 }
                                 throw new DomainException(
-                                    "The pipeline must resolve either with a custom
-                                     Psr\Http\Message\ResponseInterface, or with the
-                                     original request."
+                                    "The pipeline must resolve either with a "
+                                   ."custom Psr\Http\Message\ResponseInterface,"
+                                   ." or with the original request."
                                 );
                             }
                         ))
