@@ -201,5 +201,20 @@ class RouterTest extends PHPUnit_Framework_TestCase
         );
         $this->assertEquals('/foo/bar/baz/', $url);
     }
+
+    public function testPipeWithUrlArguments()
+    {
+        $router = new Router;
+        $this->expectOutputString('12ok');
+        $router->when('/{foo}/{bar}/')
+            ->pipe(function ($request, $bar, $foo) {
+                echo $foo;
+                echo $bar;
+                return $request;
+            })
+            ->then('test', 'ok');
+        $_SERVER['REQUEST_URI'] = '/1/2/';
+        echo $router(ServerRequestFactory::fromGlobals());
+    }
 }
 
