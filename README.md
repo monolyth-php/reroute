@@ -220,6 +220,28 @@ $router->when('/restricted/')
 You can call `pipe` as often as you want. Subrouters won't be executed if the
 pipeline is short-circuited anywhere.
 
+When using named parameters, the pipelined callable can optionally specify which
+parameters it also wants to use:
+
+```php
+<?php
+
+$router->when("/(?'foo':\d+)/")
+    ->pipe(function ($payload, $foo) {
+        if ($foo != 42) {
+            // return error response or something...
+        }
+        return $payload;
+    });
+```
+
+This is similar to the state resolving callable, except that there is _always_
+a first parameter `$payload`, and injecting the `$request` isn't possible.
+
+One common use of this is defining a pipe for a first `$language` parameter in
+a group of routes, and setting some environment variable to its value for all
+underlying routes.
+
 ## Generating URLs
 To generate a URL for a defined named state, use the `generate` method:
 
