@@ -71,6 +71,7 @@ class Router implements StageInterface
         if (isset($pipe)) {
             $this->pipeline->add($pipe);
         }
+        self::$matchedArguments = [];
     }
 
     /**
