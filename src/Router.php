@@ -6,7 +6,7 @@ use DomainException;
 use InvalidArgumentException;
 use ReflectionFunction;
 use ReflectionMethod;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Zend\Diactoros\ServerRequestFactory;
 use League\Pipeline\PipelineBuilder;
@@ -28,7 +28,7 @@ class Router implements StageInterface
     protected $state;
 
     /**
-     * @var Psr\Http\Message\ServerRequestInterface
+     * @var Psr\Http\Message\RequestInterface
      * Request object for the current request.
      */
     protected $request;
@@ -179,13 +179,13 @@ class Router implements StageInterface
     /**
      * Attempt to resolve a Reroute\State associated with a request.
      *
-     * @param Psr\Http\Message\ServerRequestInterface $request The request to
-     *  handle. Defaults to the current request.
+     * @param Psr\Http\Message\RequestInterface $request The request to handle.
+     *  Defaults to the current request.
      * @return Reroute\State|null If succesful, the corresponding state is
      *  returned, otherwise null (the implementor should then show a 404 or
      *  something else notifying the user).
      */
-    public function __invoke(ServerRequestInterface $request = null)
+    public function __invoke(RequestInterface $request = null)
     {
         if (isset($request)) {
             $this->request = $request;
@@ -207,12 +207,14 @@ class Router implements StageInterface
                     return $router->pipeline->build()
                         ->pipe(new Stage(
                             function ($request) use ($matches, $router) {
-                                if ($request instanceof ServerRequestInterface) {
+                                if ($request instanceof RequestInterface) {
                                     return $router->state->__invoke(
                                         $matches,
                                         $request
                                     );
-                                } elseif ($request instanceof ResponseInterface) {
+                                } elseif (
+                                    $request instanceof ResponseInterface
+                                ) {
                                     return $request;
                                 }
                                 throw new DomainException(
