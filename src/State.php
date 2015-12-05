@@ -3,7 +3,7 @@
 namespace Reroute;
 
 use Exception;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\RequestInterface;
 
 class State
 {
@@ -24,7 +24,7 @@ class State
         }
     }
 
-    public function __invoke($arguments, ServerRequestInterface $request)
+    public function __invoke($arguments, RequestInterface $request)
     {
         $call = $this->state;
         $parser = new ArgumentsParser($call);
