@@ -4,7 +4,7 @@ namespace Reroute;
 
 use ReflectionMethod;
 use ReflectionFunction;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\RequestInterface;
 
 class ArgumentsParser
 {
@@ -30,7 +30,7 @@ class ArgumentsParser
         $this->arguments = $arguments;
     }
 
-    public function parse($matches, ServerRequestInterface $request)
+    public function parse($matches, RequestInterface $request)
     {
         $remove = [];
         $args = isset($matches) ? $matches : [];
