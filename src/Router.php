@@ -51,7 +51,7 @@ class Router implements StageInterface
      * @var array
      * Hash of matched arguments for the resolved route.
      */
-    protected $matchedArguments;
+    protected static $matchedArguments = [];
 
     /**
      * Constructor. In most cases you won't need to worry about the constructor
@@ -93,8 +93,8 @@ class Router implements StageInterface
             foreach ($parameters as $key => $param) {
                 if (!$key) {
                     $args[] = $payload;
-                } elseif (isset($this->matchedArguments[$param->name])) {
-                    $args[] = $this->matchedArguments[$param->name];
+                } elseif (isset(self::$matchedArguments[$param->name])) {
+                    $args[] = self::$matchedArguments[$param->name];
                 } else {
                     throw new InvalidArgumentException(
                         "Pipe expects variable {$param->name}, but it is not ".
@@ -202,7 +202,7 @@ class Router implements StageInterface
                 $last = array_pop($matches);
                 unset($matches[0]);
                 if (!strlen($last)) {
-                    $router->matchedArguments = $matches;
+                    self::$matchedArguments += $matches;
                     return $router->pipeline->build()
                         ->pipe(new Stage(
                             function ($request) use ($matches, $router) {
