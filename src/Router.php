@@ -148,7 +148,7 @@ class Router implements StageInterface
         );
         $url = preg_replace("@(?<!:)/{2,}@", '/', $url);
         if (!isset($this->routes[$url])) {
-            $this->routes[$url] = new Router($url, $this->pipeline->build());
+            $this->routes[$url] = new Router($url);
         }
         if (isset($callback)) {
             $callback($this->routes[$url]);
@@ -298,30 +298,32 @@ class Router implements StageInterface
             if (preg_match("@^$match(.*)$@", $url, $matches)) {
                 $last = array_pop($matches);
                 unset($matches[0]);
+                self::$matchedArguments += $matches;
+                $pipeline = $router->pipeline->build();
                 if (!strlen($last)) {
-                    self::$matchedArguments += $matches;
-                    return $router->pipeline->build()
-                        ->pipe(new Pipe(
-                            function ($request) use ($matches, $router) {
-                                if ($request instanceof RequestInterface) {
-                                    return $router->state->__invoke(
-                                        $matches,
-                                        $request
-                                    );
-                                } elseif (
-                                    $request instanceof ResponseInterface
-                                ) {
-                                    return $request;
-                                }
-                                throw new DomainException(
-                                    "The pipeline must resolve either with a "
-                                   ."custom Psr\Http\Message\ResponseInterface,"
-                                   ." or with the original request."
+                    $pipeline = $pipeline->pipe(new Pipe(
+                        function ($request) use ($matches, $router) {
+                            if ($request instanceof RequestInterface) {
+                                return $router->state->__invoke(
+                                    $matches,
+                                    $request
                                 );
+                            } elseif ($request instanceof ResponseInterface) {
+                                return $request;
                             }
-                        ))
-                        ->process($this->request);
-                } elseif ($response = $router($this->request)) {
+                            throw new DomainException(
+                                "The pipeline must resolve either with a "
+                               ."custom Psr\Http\Message\ResponseInterface,"
+                               ." or with the original request."
+                            );
+                        }
+                    ));
+                }
+                $response = $pipeline->process($this->request);
+                if (!($response instanceof RequestInterface)) {
+                    return $response;
+                }
+                if (strlen($last) and $response = $router($response)) {
                     return $response;
                 }
             }
