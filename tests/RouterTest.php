@@ -216,5 +216,21 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $_SERVER['REQUEST_URI'] = '/1/2/';
         echo $router(ServerRequestFactory::fromGlobals());
     }
+
+    public function testActionOverride()
+    {
+        $router = new Router;
+        $this->expectOutputString('barfoobar');
+        $router->when('/{foo}/{bar}/')
+            ->then('ok', function ($foo, $bar) {
+                return $foo.$bar;
+            })->post(function ($bar, callable $GET) {
+                echo $bar;
+                return $GET;
+            });
+        $_SERVER['REQUEST_URI'] = '/foo/bar/';
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        echo $router(ServerRequestFactory::fromGlobals());
+    }
 }
 

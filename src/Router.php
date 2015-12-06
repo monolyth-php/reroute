@@ -13,6 +13,11 @@ use League\Pipeline\PipelineBuilder;
 use League\Pipeline\Pipeline;
 use League\Pipeline\StageInterface;
 
+/**
+ * The main Router class. Represents a (group of) routes which can be matched
+ * either in a League\Pipeline or something compatible, or by directly invoking
+ * the instance.
+ */
 class Router implements StageInterface
 {
     /**
@@ -85,7 +90,7 @@ class Router implements StageInterface
      */
     public function pipe(callable $stage)
     {
-        $this->pipeline->add(new Stage(function ($payload) use ($stage) {
+        $this->pipeline->add(new Pipe(function ($payload) use ($stage) {
             $reflection = $stage instanceof Closure ?
                 new ReflectionFunction($stage) :
                 new ReflectionMethod($stage, '__invoke');
@@ -143,7 +148,7 @@ class Router implements StageInterface
         );
         $url = preg_replace("@(?<!:)/{2,}@", '/', $url);
         if (!isset($this->routes[$url])) {
-            $this->routes[$url] = new Router($url, $this->pipeline->build());
+            $this->routes[$url] = new Router($url);
         }
         if (isset($callback)) {
             $callback($this->routes[$url]);
@@ -171,6 +176,97 @@ class Router implements StageInterface
         return $this;
     }
 
+    /**
+     * Use the defined $state if the HTTP action specifically matches `"POST"`.
+     *
+     * @param mixed $state A valid state to respond with.
+     * @return self The current router, for chaining.
+     */
+    public function post($state)
+    {
+        if (!isset($this->state)) {
+            $this->then(null, function() {});
+        }
+        $this->state->addCallback('POST', $state);
+        return $this;
+    }
+
+
+    /**
+     * Use the defined $state if the HTTP action specifically matches `"PUT"`.
+     *
+     * @param mixed $state A valid state to respond with.
+     * @return self The current router, for chaining.
+     */
+    public function put($state)
+    {
+        if (!isset($this->state)) {
+            $this->then(null, function() {});
+        }
+        $this->state->addCallback('PUT', $state);
+        return $this;
+    }
+
+
+    /**
+     * Use the defined $state if the HTTP action specifically matches
+     * `"DELETE"`.
+     *
+     * @param mixed $state A valid state to respond with.
+     * @return self The current router, for chaining.
+     */
+    public function delete($state)
+    {
+        if (!isset($this->state)) {
+            $this->then(null, function() {});
+        }
+        $this->state->addCallback('DELETE', $state);
+        return $this;
+    }
+
+
+    /**
+     * Use the defined $state if the HTTP action specifically matches `"HEAD"`.
+     *
+     * @param mixed $state A valid state to respond with.
+     * @return self The current router, for chaining.
+     */
+    public function head($state)
+    {
+        if (!isset($this->state)) {
+            $this->then(null, function() {});
+        }
+        $this->state->addCallback('HEAD', $state);
+        return $this;
+    }
+
+    /**
+     * Use the defined $state if the HTTP action specifically matches
+     * `"OPTIONS"`.
+     *
+     * @param mixed $state A valid state to respond with.
+     * @return self The current router, for chaining.
+     */
+    public function options($state)
+    {
+        if (!isset($this->state)) {
+            $this->then(null, function() {});
+        }
+        $this->state->addCallback('OPTIONS', $state);
+        return $this;
+    }
+
+    /**
+     * A front to `__invoke` for compatibility with older League\Pipeline
+     * versions.
+     *
+     * @param Psr\Http\Message\RequestInterface $request The request to handle.
+     *  Defaults to the current request.
+     * @return Reroute\State|null If succesful, the corresponding state is
+     *  returned, otherwise null (the implementor should then show a 404 or
+     *  something else notifying the user).
+     * @see Reroute\Router::__invoke
+     */
     public function process($payload)
     {
         return $this($payload);
@@ -202,30 +298,32 @@ class Router implements StageInterface
             if (preg_match("@^$match(.*)$@", $url, $matches)) {
                 $last = array_pop($matches);
                 unset($matches[0]);
+                self::$matchedArguments += $matches;
+                $pipeline = $router->pipeline->build();
                 if (!strlen($last)) {
-                    self::$matchedArguments += $matches;
-                    return $router->pipeline->build()
-                        ->pipe(new Stage(
-                            function ($request) use ($matches, $router) {
-                                if ($request instanceof RequestInterface) {
-                                    return $router->state->__invoke(
-                                        $matches,
-                                        $request
-                                    );
-                                } elseif (
-                                    $request instanceof ResponseInterface
-                                ) {
-                                    return $request;
-                                }
-                                throw new DomainException(
-                                    "The pipeline must resolve either with a "
-                                   ."custom Psr\Http\Message\ResponseInterface,"
-                                   ." or with the original request."
+                    $pipeline = $pipeline->pipe(new Pipe(
+                        function ($request) use ($matches, $router) {
+                            if ($request instanceof RequestInterface) {
+                                return $router->state->__invoke(
+                                    $matches,
+                                    $request
                                 );
+                            } elseif ($request instanceof ResponseInterface) {
+                                return $request;
                             }
-                        ))
-                        ->process($this->request);
-                } elseif ($response = $router($this->request)) {
+                            throw new DomainException(
+                                "The pipeline must resolve either with a "
+                               ."custom Psr\Http\Message\ResponseInterface,"
+                               ." or with the original request."
+                            );
+                        }
+                    ));
+                }
+                $response = $pipeline->process($this->request);
+                if (!($response instanceof RequestInterface)) {
+                    return $response;
+                }
+                if (strlen($last) and $response = $router($response)) {
                     return $response;
                 }
             }
