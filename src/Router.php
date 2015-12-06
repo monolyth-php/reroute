@@ -13,6 +13,11 @@ use League\Pipeline\PipelineBuilder;
 use League\Pipeline\Pipeline;
 use League\Pipeline\StageInterface;
 
+/**
+ * The main Router class. Represents a (group of) routes which can be matched
+ * either in a League\Pipeline or something compatible, or by directly invoking
+ * the instance.
+ */
 class Router implements StageInterface
 {
     /**
@@ -85,7 +90,7 @@ class Router implements StageInterface
      */
     public function pipe(callable $stage)
     {
-        $this->pipeline->add(new Stage(function ($payload) use ($stage) {
+        $this->pipeline->add(new Pipe(function ($payload) use ($stage) {
             $reflection = $stage instanceof Closure ?
                 new ReflectionFunction($stage) :
                 new ReflectionMethod($stage, '__invoke');
@@ -296,7 +301,7 @@ class Router implements StageInterface
                 if (!strlen($last)) {
                     self::$matchedArguments += $matches;
                     return $router->pipeline->build()
-                        ->pipe(new Stage(
+                        ->pipe(new Pipe(
                             function ($request) use ($matches, $router) {
                                 if ($request instanceof RequestInterface) {
                                     return $router->state->__invoke(
