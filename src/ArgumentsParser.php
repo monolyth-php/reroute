@@ -23,6 +23,8 @@ class ArgumentsParser
                 and $class->implementsInterface($request)
             ) {
                 $arguments["RequestInterface"] = true;
+            } elseif ($value->isCallable()) {
+                $arguments[$value->name] = '$'.$value->name;
             } else {
                 $arguments[$value->name] = null;
             }
