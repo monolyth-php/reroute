@@ -24,9 +24,9 @@ composer require monomelodies/reroute
        PSR-4 autoloader (recommended);
     2. Alternatively, manually `include` the files you need.
 
-## Usage
+## Basic Usage
 
-### The basics
+### `when`? `then`!
 Since the Reroute router responds to HTTP requests, we use the `when` and `then`
 methods to respond:
 
@@ -46,6 +46,19 @@ match `/bla/my-framework/libs/some/url/` if nothing better was defined.
 > Note that Reroute matches _parts_ of URLs, hence the fact that your defined
 > route starts with `/` doesn't have any special meaning.
 
+`when` returns a new Router with the specified URL as its "base" (the first
+constructor argument). For nested routers (see below), this includes the base
+for _all_ parent routers. Schematically:
+
+```php
+<?php
+
+$router = new Router;
+$foo = $router->when('/foo/');
+$bar = $foo->when('/bar/');
+$baz = $bar->when('/baz/')->then('I match /foo/bar/baz/!');
+```
+
 What `then` returns can be really anything. If you pass a callable, that in turn
 should eventually return something non-callable. Hence, the following four forms
 are equivalent:
@@ -57,6 +70,7 @@ $router->when('/some/url/')->then(function () {
     return 'Hello world!';
 });;
 $router->when('/some/url/')->then('Hello world!');
+
 class Foo
 {
     public static function getInstance()
@@ -69,6 +83,7 @@ class Foo
         return 'Hello world!';
     }
 }
+
 $router->when('/some/url/')->then(new Foo);
 $router->when('/some/url/')->then(['Foo', 'getInstance']);
 ```
@@ -84,28 +99,6 @@ point by calling `get('name_of_state')` on the router:
 $router->when('/the/url/')->then('myname', 'handler');
 $state = $router->get('myname'); // Ok!
 $state instanceof Reroute\State; // true
-```
-
-### Matching HTTP verbs
-By type hinting a parameter as an instance of
-`Psr\Http\Message\RequestInterface`, you can inject the original request object
-and check the used method (or anything else of course):
-
-```php
-<?php
-
-use Psr\Http\Message\RequestInterface;
-
-$router->when('/some/url/')->then(function (RequestInterface $request) {
-    switch ($request->getMethod()) {
-        case 'POST':
-            // Perform some action
-        case 'GET':
-            return 'ok';
-        default:
-            return $request->getMethod()." method not allowed.";
-    }
-});
 ```
 
 ### Resolving a request
@@ -137,30 +130,111 @@ the pipeline. Otherwise, it will resolve to `null`.
 >`$_SERVER['REQUEST_METHOD']`.
 
 ## Passing parameters
-Your URLs are actually regexes, so you can defined variables to pass into the
+Your URLs are actually regexes, so you can match variables to pass into the
 callback:
 
 ```php
 <?php
 
-$router->when("/('name'\w+)/")->then(function ($name) {
+$router->when("/(?'name'\w+)/")->then(function ($name) {
     return "Hi there, $name!";
 });
 ```
 
+Variables can be _named_ (in which case the order you pass them to your callback
+doesn't matter - Reroute does reflection on the callable to determine the best
+fit) or _anonymous_ (in which case they'll be passed in order).
+
 ### Shorthand placeholders
-For simpler URLs, you can also use a few shorthand placeholders:
+For simpler URLs, you can also use a few shorthand placeholders. The following
+three statements are identical:
 
 ```php
 <?php
 
-$router->when("/('param'.*?)/");
+$router->when("/(?'param'.*?)/");
 $router->when('/:param/');
 $router->when('/{param}/');
 ```
 
-The order is not important, the Router will figure that out for you.
+When using placeholders, note that one has less control over parameter types.
+Using regexes is more powerfull since you can force e.g. `"/(?'id'\d+)/"` to
+match and integer. PHP 7 supports extended type hinting in callables, so this
+will be improved in a future release.
 
+## Inspecting the current request
+By type hinting a parameter as an instance of
+`Psr\Http\Message\RequestInterface`, you can inject the original request object
+and check the used method (or anything else of course):
+
+```php
+<?php
+
+use Psr\Http\Message\RequestInterface;
+
+$router->when('/some/url/')->then(function (RequestInterface $request) {
+    switch ($request->getMethod()) {
+        case 'POST':
+            // Perform some action
+        case 'GET':
+            return 'ok';
+        default:
+            return $request->getMethod()." method not allowed.";
+    }
+});
+```
+
+## Limiting to verbs (or extending the palet)
+The default behaviour is to match `GET` and `POST` actions only since they are
+most common in web applications. Normally a `POST` to a static page should act
+like a `GET`. However, one can specifically instruct certain URLs to respond to
+certain methods:
+
+```php
+<?php
+
+use Zend\Diactoros\Response\EmptyResponse;
+
+$router->when('/some/url/')->then('my-awesome-state', function () {
+    // Get not allowed!
+    return new EmptyResponse(403);
+})->post(function () {
+    // ...do something, POST is allowed...
+    // Since we disabled get, this should redirect somewhere valid afterwards.
+});
+```
+
+Available verb methods are `post`, `put`, `delete`, `head` and `options`.
+Subsequent calls extend the current state, and any existing actions are
+overridden on re-declaration.
+
+### Referring to other callbacks
+A parameter typehinted as `callable` matching a defined action (in uppercase)
+can be used to "chain" to another action. So the following pattern is common for
+URLs requiring special handling on e.g. a `POST`:
+
+```php
+<?php
+
+$router->when('/some/url/')->then('my-state', function() {
+    return 'This is a normal page';
+})->post(function (callable $GET) {
+    // Perform some action...
+    return $GET;
+});
+```
+
+Note there is no need to re-pass any URL parameters to the callable; they are
+injected automatically. Hence, calls to `get` and `post` etc. may
+accept/recognize different parameters in different orders.
+
+> Custom verb callbacks do _not_ "bubble up" the routing chain. Hence,
+> specifically disabling `POST` on `/foo/` does not affect the default
+> behaviour for `/foo/bar/`.
+
+If the injected action is not available for this state, a 405 error is
+returned instead.
+        
 ## Grouping
 The optional second argument to `when` is a callable, which expects a single
 parameter: a new (sub) router. All routes defined using `when` on the subrouter
