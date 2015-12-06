@@ -171,6 +171,97 @@ class Router implements StageInterface
         return $this;
     }
 
+    /**
+     * Use the defined $state if the HTTP action specifically matches `"POST"`.
+     *
+     * @param mixed $state A valid state to respond with.
+     * @return self The current router, for chaining.
+     */
+    public function post($state)
+    {
+        if (!isset($this->state)) {
+            $this->then(null, function() {});
+        }
+        $this->state->addCallback('POST', $state);
+        return $this;
+    }
+
+
+    /**
+     * Use the defined $state if the HTTP action specifically matches `"PUT"`.
+     *
+     * @param mixed $state A valid state to respond with.
+     * @return self The current router, for chaining.
+     */
+    public function put($state)
+    {
+        if (!isset($this->state)) {
+            $this->then(null, function() {});
+        }
+        $this->state->addCallback('PUT', $state);
+        return $this;
+    }
+
+
+    /**
+     * Use the defined $state if the HTTP action specifically matches
+     * `"DELETE"`.
+     *
+     * @param mixed $state A valid state to respond with.
+     * @return self The current router, for chaining.
+     */
+    public function delete($state)
+    {
+        if (!isset($this->state)) {
+            $this->then(null, function() {});
+        }
+        $this->state->addCallback('DELETE', $state);
+        return $this;
+    }
+
+
+    /**
+     * Use the defined $state if the HTTP action specifically matches `"HEAD"`.
+     *
+     * @param mixed $state A valid state to respond with.
+     * @return self The current router, for chaining.
+     */
+    public function head($state)
+    {
+        if (!isset($this->state)) {
+            $this->then(null, function() {});
+        }
+        $this->state->addCallback('HEAD', $state);
+        return $this;
+    }
+
+    /**
+     * Use the defined $state if the HTTP action specifically matches
+     * `"OPTIONS"`.
+     *
+     * @param mixed $state A valid state to respond with.
+     * @return self The current router, for chaining.
+     */
+    public function options($state)
+    {
+        if (!isset($this->state)) {
+            $this->then(null, function() {});
+        }
+        $this->state->addCallback('OPTIONS', $state);
+        return $this;
+    }
+
+    /**
+     * A front to `__invoke` for compatibility with older League\Pipeline
+     * versions.
+     *
+     * @param Psr\Http\Message\RequestInterface $request The request to handle.
+     *  Defaults to the current request.
+     * @return Reroute\State|null If succesful, the corresponding state is
+     *  returned, otherwise null (the implementor should then show a 404 or
+     *  something else notifying the user).
+     * @see Reroute\Router::__invoke
+     */
     public function process($payload)
     {
         return $this($payload);
