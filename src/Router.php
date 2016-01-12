@@ -148,7 +148,7 @@ class Router implements StageInterface
         );
         $url = preg_replace("@(?<!:)/{2,}@", '/', $url);
         if (!isset($this->routes[$url])) {
-            $this->routes[$url] = new Router($url);
+            $this->routes[$url] = new Router($url, $this->pipeline->build());
         }
         if (isset($callback)) {
             $callback($this->routes[$url]);
@@ -318,12 +318,12 @@ class Router implements StageInterface
                             );
                         }
                     ));
+                    $response = $pipeline->process($this->request);
+                    if (!($response instanceof RequestInterface)) {
+                        return $response;
+                    }
                 }
-                $response = $pipeline->process($this->request);
-                if (!($response instanceof RequestInterface)) {
-                    return $response;
-                }
-                if (strlen($last) and $response = $router($response)) {
+                if (strlen($last) and $response = $router($request)) {
                     return $response;
                 }
             }
