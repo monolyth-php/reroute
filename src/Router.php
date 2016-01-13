@@ -191,7 +191,6 @@ class Router implements StageInterface
         return $this;
     }
 
-
     /**
      * Use the defined $state if the HTTP action specifically matches `"PUT"`.
      *
@@ -206,7 +205,6 @@ class Router implements StageInterface
         $this->state->addCallback('PUT', $state);
         return $this;
     }
-
 
     /**
      * Use the defined $state if the HTTP action specifically matches
@@ -223,7 +221,6 @@ class Router implements StageInterface
         $this->state->addCallback('DELETE', $state);
         return $this;
     }
-
 
     /**
      * Use the defined $state if the HTTP action specifically matches `"HEAD"`.
