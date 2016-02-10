@@ -309,17 +309,20 @@ class Router implements StageInterface
         unset($parts['query'], $parts['fragment']);
         $parts += parse_url($this->host);
         $url = http_build_url('', $parts);
+        $test = preg_match("@^{$this->url}$@", $url, $matches);
+        unset($matches[0]);
+        self::$matchedArguments += $matches;
         $response = $this->pipeline->build()->process($request);
-        if (preg_match("@^{$this->url}$@", $url, $matches)
-            and $response instanceof ResponseInterface
-        ) {
-            unset($matches[0]);
-            self::$matchedArguments += $matches;
+        if ($test and $response instanceof ResponseInterface) {
             return $response;
         }
+        // Assume that the longer the URL to match is, the more specific we
+        // would want it to be.
+        uksort($this->routes, function ($a, $b) {
+            return strlen($a) > strlen($b) ? -1 : 1;
+        });
         foreach ($this->routes as $match => $router) {
-            if (preg_match("@^$match(.*)$@", $url, $matches)) {
-                array_pop($matches);
+            if (preg_match("@^$match@", $url, $matches)) {
                 unset($matches[0]);
                 self::$matchedArguments += $matches;
                 return $router($request);
