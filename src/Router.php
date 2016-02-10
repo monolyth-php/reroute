@@ -325,7 +325,7 @@ class Router implements StageInterface
                 return $router($request);
             }
         }
-        return $response;
+        return $response instanceof RequestInterface ? null : $response;
     }
 
     /**
