@@ -90,26 +90,29 @@ class Router implements StageInterface
      */
     public function pipe(callable $stage)
     {
-        $this->pipeline->add(new Pipe(function ($payload) use ($stage) {
-            $reflection = $stage instanceof Closure ?
-                new ReflectionFunction($stage) :
-                new ReflectionMethod($stage, '__invoke');
-            $parameters = $reflection->getParameters();
-            $args = [];
-            foreach ($parameters as $key => $param) {
-                if (!$key) {
-                    $args[] = $payload;
-                } elseif (isset(self::$matchedArguments[$param->name])) {
-                    $args[] = self::$matchedArguments[$param->name];
-                } else {
-                    throw new InvalidArgumentException(
-                        "Pipe expects variable {$param->name}, but it is not ".
-                        "present in the URL being resolved."
-                    );
+        if (!($stage instanceof StageInterface)) {
+            $stage = new Pipe(function ($payload) use ($stage) {
+                $reflection = $stage instanceof Closure ?
+                    new ReflectionFunction($stage) :
+                    new ReflectionMethod($stage, '__invoke');
+                $parameters = $reflection->getParameters();
+                $args = [];
+                foreach ($parameters as $key => $param) {
+                    if (!$key) {
+                        $args[] = $payload;
+                    } elseif (isset(self::$matchedArguments[$param->name])) {
+                        $args[] = self::$matchedArguments[$param->name];
+                    } else {
+                        throw new InvalidArgumentException(
+                            "Pipe expects variable {$param->name}, but it is ".
+                            "not present in the URL being resolved."
+                        );
+                    }
                 }
-            }
-            return call_user_func_array($stage, $args);
-        }));
+                return call_user_func_array($stage, $args);
+            });
+        }
+        $this->pipeline->add($stage);
         return $this;
     }
 
@@ -148,7 +151,7 @@ class Router implements StageInterface
         );
         $url = preg_replace("@(?<!:)/{2,}@", '/', $url);
         if (!isset($this->routes[$url])) {
-            $this->routes[$url] = new Router($url, $this->pipeline->build());
+            $this->routes[$url] = new Router($url);
         }
         if (isset($callback)) {
             $callback($this->routes[$url]);
@@ -173,6 +176,21 @@ class Router implements StageInterface
         }
         $this->name = $name;
         $this->state = new State($name, $state);
+        $this->pipe(new Pipe(function ($request) {
+            if ($request instanceof RequestInterface) {
+                return $this->state->__invoke(
+                    self::$matchedArguments,
+                    $request
+                );
+            } elseif ($request instanceof ResponseInterface) {
+                return $request;
+            }
+            throw new DomainException(
+                "The pipeline must resolve either with a custom "
+               ."Psr\Http\Message\ResponseInterface, or with the original "
+               ."request."
+            );
+        }));
         return $this;
     }
 
@@ -291,41 +309,23 @@ class Router implements StageInterface
         unset($parts['query'], $parts['fragment']);
         $parts += parse_url($this->host);
         $url = http_build_url('', $parts);
+        $response = $this->pipeline->build()->process($request);
+        if (preg_match("@^{$this->url}$@", $url, $matches)
+            and $response instanceof ResponseInterface
+        ) {
+            unset($matches[0]);
+            self::$matchedArguments += $matches;
+            return $response;
+        }
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match(.*)$@", $url, $matches)) {
-                $last = array_pop($matches);
+                array_pop($matches);
                 unset($matches[0]);
                 self::$matchedArguments += $matches;
-                $pipeline = $router->pipeline->build();
-                if (!strlen($last)) {
-                    $pipeline = $pipeline->pipe(new Pipe(
-                        function ($request) use ($matches, $router) {
-                            if ($request instanceof RequestInterface) {
-                                return $router->state->__invoke(
-                                    $matches,
-                                    $request
-                                );
-                            } elseif ($request instanceof ResponseInterface) {
-                                return $request;
-                            }
-                            throw new DomainException(
-                                "The pipeline must resolve either with a "
-                               ."custom Psr\Http\Message\ResponseInterface,"
-                               ." or with the original request."
-                            );
-                        }
-                    ));
-                    $response = $pipeline->process($this->request);
-                    if (!($response instanceof RequestInterface)) {
-                        return $response;
-                    }
-                }
-                if (strlen($last) and $response = $router($request)) {
-                    return $response;
-                }
+                return $router($request);
             }
         }
-        return null;
+        return $response;
     }
 
     /**
