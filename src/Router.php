@@ -316,11 +316,6 @@ class Router implements StageInterface
         if ($test and $response instanceof ResponseInterface) {
             return $response;
         }
-        // Assume that the longer the URL to match is, the more specific we
-        // would want it to be.
-        uksort($this->routes, function ($a, $b) {
-            return strlen($a) > strlen($b) ? -1 : 1;
-        });
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match@", $url, $matches)) {
                 unset($matches[0]);
