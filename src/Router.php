@@ -177,19 +177,7 @@ class Router implements StageInterface
         $this->name = $name;
         $this->state = new State($name, $state);
         $this->pipe(new Pipe(function ($request) {
-            if ($request instanceof RequestInterface) {
-                return $this->state->__invoke(
-                    self::$matchedArguments,
-                    $request
-                );
-            } elseif ($request instanceof ResponseInterface) {
-                return $request;
-            }
-            throw new DomainException(
-                "The pipeline must resolve either with a custom "
-               ."Psr\Http\Message\ResponseInterface, or with the original "
-               ."request."
-            );
+            return $this->state;
         }));
         return $this;
     }
@@ -313,8 +301,8 @@ class Router implements StageInterface
         unset($matches[0]);
         self::$matchedArguments += $matches;
         $response = $this->pipeline->build()->process($request);
-        if ($test and $response instanceof ResponseInterface) {
-            return $response;
+        if ($test and $response instanceof State) {
+            return $response(self::$matchedArguments, $request);
         }
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match@", $url, $matches)) {
