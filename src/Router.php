@@ -177,7 +177,9 @@ class Router implements StageInterface
         $this->name = $name;
         $this->state = new State($name, $state);
         $this->pipe(new Pipe(function ($request) {
-            return $this->state;
+            return $request instanceof ResponseInterface ?
+                $request :
+                $this->state;
         }));
         return $this;
     }
@@ -303,6 +305,9 @@ class Router implements StageInterface
         $response = $this->pipeline->build()->process($request);
         if ($test and $response instanceof State) {
             return $response(self::$matchedArguments, $request);
+        }
+        if ($response instanceof ResponseInterface) {
+            return $response;
         }
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match@", $url, $matches)) {
