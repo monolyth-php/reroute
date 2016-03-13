@@ -303,8 +303,13 @@ class Router implements StageInterface
         unset($matches[0]);
         self::$matchedArguments += $matches;
         $response = $this->pipeline->build()->process($request);
-        if ($test and $response instanceof State) {
-            return $response(self::$matchedArguments, $request);
+        if ($test) {
+            if ($response instanceof State) {
+                return $response(self::$matchedArguments, $request);
+            }
+            if ($response instanceof ResponseInterface) {
+                return $response;
+            }
         }
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match@", $url, $matches)) {
