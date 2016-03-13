@@ -283,8 +283,8 @@ class Router implements StageInterface
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
      *  Defaults to the current request.
      * @return Reroute\State|null If succesful, the corresponding state is
-     *  returned, otherwise null (the implementor should then show a 404 or
-     *  something else notifying the user).
+     *  invoked and its response returned, otherwise null (the implementor
+     *  should then show a 404 or something else notifying the user).
      */
     public function __invoke(RequestInterface $request = null)
     {
@@ -306,17 +306,16 @@ class Router implements StageInterface
         if ($test and $response instanceof State) {
             return $response(self::$matchedArguments, $request);
         }
-        if ($response instanceof ResponseInterface) {
-            return $response;
-        }
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match@", $url, $matches)) {
                 unset($matches[0]);
                 self::$matchedArguments += $matches;
-                return $router($request);
+                if ($res = $router($request)) {
+                    return $res;
+                }
             }
         }
-        return $response instanceof RequestInterface ? null : $response;
+        return null;
     }
 
     /**
