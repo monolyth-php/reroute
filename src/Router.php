@@ -291,9 +291,7 @@ class Router implements StageInterface
         if (isset($request)) {
             $this->request = $request;
         }
-        if (!isset($url)) {
-            $url = $this->request->getUri().'';
-        }
+        $url = $this->request->getUri().'';
         $url = $this->normalize($url);
         $parts = parse_url($url);
         unset($parts['query'], $parts['fragment']);
@@ -307,9 +305,9 @@ class Router implements StageInterface
             if ($response instanceof State) {
                 return $response(self::$matchedArguments, $request);
             }
-            if ($response instanceof ResponseInterface) {
-                return $response;
-            }
+        }
+        if ($response instanceof ResponseInterface) {
+            return $response;
         }
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match@", $url, $matches)) {
