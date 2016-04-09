@@ -2,7 +2,6 @@
 
 namespace Reroute;
 
-use Exception;
 use ReflectionMethod;
 use ReflectionFunction;
 use Psr\Http\Message\RequestInterface;
