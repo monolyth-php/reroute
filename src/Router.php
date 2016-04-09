@@ -12,6 +12,7 @@ use Zend\Diactoros\ServerRequestFactory;
 use League\Pipeline\PipelineBuilder;
 use League\Pipeline\Pipeline;
 use League\Pipeline\StageInterface;
+use Closure;
 
 /**
  * The main Router class. Represents a (group of) routes which can be matched
