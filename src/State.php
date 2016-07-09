@@ -1,6 +1,6 @@
 <?php
 
-namespace Reroute;
+namespace Monolyth\Reroute;
 
 use Exception;
 use ReflectionMethod;
