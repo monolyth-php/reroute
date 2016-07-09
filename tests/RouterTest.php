@@ -1,15 +1,9 @@
 <?php
 
-namespace Reroute\Tests;
+namespace Monolyth\Reroute\Tests;
 
 use PHPUnit_Framework_TestCase;
-use Reroute\Router;
-use Reroute\Url\Flat;
-use Reroute\Url\Regex;
-use Reroute\Url\Legacy;
-use Reroute\Url\Angular;
-use Reroute\Url\Braces;
-use Reroute\Url\Nomatch;
+use Monolyth\Reroute\Router;
 use Zend\Diactoros\ServerRequestFactory;
 use Psr\Http\Message\RequestInterface;
 
