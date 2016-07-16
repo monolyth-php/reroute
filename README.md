@@ -3,15 +3,15 @@ Flexible PHP5 HTTP router, with support for various types of URL matching,
 URL arguments, custom state handling and URL generation. Reroute is designed
 to be usable in any type of project or framework.
 
-- [Homepage](http://reroute.monomelodies.nl)
-- [Documentation](http://reroute.monomelodies.nl/docs/)
+- [Homepage](http://monolyth.monomelodies.nl/reroute/)
+- [Documentation](http://monolyth.monomelodies.nl/reroute/docs/)
 
 ## Installation
 
 ### Composer (recommended)
 
 ```bash
-composer require monomelodies/reroute
+$ composer require monolyth/reroute
 ```
 
 ### Manual installation
@@ -20,8 +20,8 @@ composer require monomelodies/reroute
     1. Clone the repository, e.g. from GitHub;
     2. Download the ZIP (e.g. from Github) and extract.
 2. Make your project recognize Reroute:
-    1. Register `/path/to/reroute/src` for the namespace `Reroute\\` in your
-       PSR-4 autoloader (recommended);
+    1. Register `/path/to/reroute/src` for the namespace `Monolyth\\Reroute\\`
+       in your PSR-4 autoloader (recommended);
     2. Alternatively, manually `include` the files you need.
 
 ## Basic Usage
@@ -32,6 +32,8 @@ methods to respond:
 
 ```php
 <?php
+
+use Monolyth\Reroute\Router;
 
 $router = new Router;
 $router->when('/some/url/')->then(function () {
@@ -52,6 +54,8 @@ for _all_ parent routers. Schematically:
 
 ```php
 <?php
+
+use Monolyth\Reroute\Router;
 
 $router = new Router;
 $foo = $router->when('/foo/');
