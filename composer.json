@@ -1,6 +1,6 @@
 {
-    "name": "monomelodies/reroute",
-    "description": "Extremely flexible PHP5 router",
+    "name": "monolyth/reroute",
+    "description": "Extremely flexible PHP5 router for the Monolyth unframework",
     "license": "MIT",
     "keywords": ["php","mvc","router"],
     "authors": [
