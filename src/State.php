@@ -204,6 +204,11 @@ class State
                 $args[] = $arg;
             }
         }
+        array_walk($args, function (&$value) {
+            if (is_string($value)) {
+                $value = preg_replace("@/$@", '', $value);
+            }
+        });
         return $args;
     }
 }
