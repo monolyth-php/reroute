@@ -406,3 +406,8 @@ $router->when('/user/{id}?/');
 
 ```
 
+Note that any argument found ending in a slash has this stripped, since normally
+slashes are reserved for argument separation. Also note all arguments are passed
+as strings, even if you are specifically matching e.g. an integer. For default
+parameters, these are simply passed as-is.
+
