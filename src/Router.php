@@ -92,9 +92,13 @@ class Router implements StageInterface
     {
         if (!($stage instanceof StageInterface)) {
             $stage = new Pipe(function ($payload) use ($stage) {
-                $reflection = $stage instanceof Closure ?
-                    new ReflectionFunction($stage) :
-                    new ReflectionMethod($stage, '__invoke');
+                if ($stage instanceof Closure) {
+                    $reflection = new ReflectionFunction($stage);
+                } elseif (is_array($stage)) {
+                    $reflection = new ReflectionMethod($stage[0], $stage[1]);
+                } else {
+                    $reflection = new ReflectionMethod($stage, '__invoke');
+                }
                 $parameters = $reflection->getParameters();
                 $args = [];
                 foreach ($parameters as $key => $param) {
