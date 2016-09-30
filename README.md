@@ -373,3 +373,36 @@ if ($state = $router()) {
 A best practice is to wrap your state resolving in a `try/catch` block, and
 handle any error accordingly so views/controllers/etc. can throw exceptions.
 
+## Routes with default arguments
+In some situations it comes in handy to be able to specify a "default argument"
+in your callback. E.g., when a call to `/user/` should show the currently
+logged in user's profile, and a call to `/user/:id/` that of the specified user.
+
+This is possible in Reroute by making the argument optional in the URL and
+giving a default value in the callback. For the above example, one could e.g.
+do:
+
+```php
+<?php
+
+$router->when("/user/(?'id'\d+/)?")->then(function ($id = null) {
+    if (!isset($id)) {
+        $id = $GLOBALS['user']->id;
+    }
+    // ...return profile for $id...
+    return "<h1>User profile for $id</h1>";
+});
+
+```
+
+The shorthand URL matching style can be made optional by postfixing the
+placeholder with a question mark:
+
+```php
+<?php
+
+$router->when('/user/:id?/');
+$router->when('/user/{id}?/');
+
+```
+
