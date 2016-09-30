@@ -169,7 +169,7 @@ class State
             if ($class = $value->getClass()
                 and $class->implementsInterface($request)
             ) {
-                $arguments["RequestInterface"] = $this->request;
+                $arguments[$value->name] = $this->request;
             } elseif ($value->isCallable()) {
                 $arguments[$value->name] = isset($this->actions[$value->name]) ?
                     $this->actions[$value->name] :
