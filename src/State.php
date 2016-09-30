@@ -157,6 +157,8 @@ class State
     {
         if (is_object($call) && method_exists($call, '__invoke')) {
             $reflection = new ReflectionMethod($call, '__invoke');
+        } elseif (is_array($call) && method_exists($call[0], $call[1])) {
+            $reflection = new ReflectionMethod($call[0], $call[1]);
         } else {
             $reflection = new ReflectionFunction($call);
         }
