@@ -1,0 +1,5 @@
+{
+    "src": "src",
+    "tests": "tests",
+    "namespace": "Monolyth\\Reroute\\Tests"
+}

@@ -14,9 +14,6 @@
         "zendframework/zend-diactoros": "^1.2",
         "league/pipeline": "^0.1.0"
     },
-    "require-dev": {
-        "phpunit/phpunit": "4.0.*"
-    },
     "autoload": {
         "psr-4": {
             "Monolyth\\Reroute\\": "src"
@@ -27,5 +24,8 @@
             "Monolyth\\Reroute\\": "src",
             "Monolyth\\Reroute\\Tests\\": "tests"
         }
+    },
+    "require-dev": {
+        "gentry/gentry": "^0.10.2"
     }
 }

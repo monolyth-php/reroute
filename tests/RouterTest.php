@@ -2,40 +2,46 @@
 
 namespace Monolyth\Reroute\Tests;
 
-use PHPUnit_Framework_TestCase;
 use Monolyth\Reroute\Router;
 use Zend\Diactoros\ServerRequestFactory;
 use Psr\Http\Message\RequestInterface;
 
-class RouterTest extends PHPUnit_Framework_TestCase
+class RouterTest
 {
-    protected function setup()
+    public function __wakeup()
     {
         $_SERVER['HTTP_HOST'] = 'localhost';
         $_SERVER['REQUEST_METHOD'] = 'GET';
     }
 
-    public function testBasicRoute()
+    /**
+     * We can resolve a route and it returns the desired state {?}.
+     */
+    public function testBasicRoute(Router $router)
     {
-        $router = new Router;
         $router->when('/')->then('foo', 'Hello world!');
         $_SERVER['REQUEST_URI'] = '/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals('Hello world!', $state);
+        yield assert($state == 'Hello world!');
     }
 
-    public function unnamedParameter()
+    /**
+     * When passing unnamed parameters, they get injected {?}.
+     */
+    public function unnamedParameter(Router $router)
     {
-        $router = new Router;
         $router->when("/(\d+)/")->then('foo', function ($id) {
             return $id;
         });
         $_SERVER['REQUEST_URI'] = '/1/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assetEquals(1, $state());
+        yield assert($state == 1);
     }
 
-    public function testNamedParameter()
+    /**
+     * When passing named parameters, they get injected {?}.
+     */
+    public function testNamedParameter(Router $router)
     {
         $router = new Router;
         $router->when("/(?'id'\d+)/")->then('foo', function ($id) {
@@ -43,10 +49,14 @@ class RouterTest extends PHPUnit_Framework_TestCase
         });
         $_SERVER['REQUEST_URI'] = '/1/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals(1, $state);
+        yield assert($state == 1);
     }
 
-    public function testParameterOrder()
+    /**
+     * When passing named parameters, we can inject them in any order we like
+     * {?}.
+     */
+    public function testParameterOrder(Router $router)
     {
         $router = new Router;
         $router->when("/(?'first'\w+)/(?'last'\w+)/")
@@ -55,10 +65,14 @@ class RouterTest extends PHPUnit_Framework_TestCase
                });
         $_SERVER['REQUEST_URI'] = '/john/doe/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals('john doe', $state);
+        yield assert($state == 'john doe');
     }
 
-    public function testRequestInRandomPlace()
+    /**
+     * When injecting the current request it can be at any place in the argument
+     * list of the callback {?}.
+     */
+    public function testRequestInRandomPlace(Router $router)
     {
         $router = new Router;
         $router->when("/(?'foo'\w+)/(\w+)/")
@@ -68,41 +82,51 @@ class RouterTest extends PHPUnit_Framework_TestCase
                });
         $_SERVER['REQUEST_URI'] = '/foo/bar/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals('bar GET foo', $state);
-    }
-
-    public function testIgnoreGetParameters()
-    {
-        $router = new Router;
-        $router->when('/')->then('foo', function () { return 'ok'; });
-        $_SERVER['REQUEST_URI'] = '/?foo=bar';
-        $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals('ok', $state);
+        yield assert($state == 'bar GET foo');
     }
 
     /**
-     * @expectedException DomainException
+     * When matching any query parameters should be ignored {?}.
      */
-    public function testInvalidStateThrowsException()
+    public function testIgnoreGetParameters(Router $router)
     {
-        $router = new Router;
-        $e = null;
-        $state = $router->get('invalid');
+        $router->when('/')->then('foo', function () { return 'ok'; });
+        $_SERVER['REQUEST_URI'] = '/?foo=bar';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        yield assert($state == 'ok');
     }
 
-    public function testRouteNesting()
+    /**
+     * When querying for an undefined state a DomainException is thrown {?}.
+     */
+    public function testInvalidStateThrowsException(Router $router)
+    {
+        $e = null;
+        try {
+            $state = $router->get('invalid');
+        } catch (\DomainException $e) {
+        }
+        yield assert($e instanceof \DomainException);
+    }
+
+    /**
+     * Routes can be nested using chaining {?}.
+     */
+    public function testRouteNesting(Router $router)
     {
         $router = new Router;
         $router->when('/foo/')
                ->when('/bar/')->then('foo', function () { return 'ok'; });
         $_SERVER['REQUEST_URI'] = '/foo/bar/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals('ok', $state);
+        yield assert($state == 'ok');
     }
 
-    public function testRouteCallbackNesting()
+    /**
+     * Routes can be nested using callbacks {?}.
+     */
+    public function testRouteCallbackNesting(Router $router)
     {
-        $router = new Router;
         $router->when('/foo/', function ($router) {
             $router->when('/bar/')->then('foo', function () {
                 return 'ok';
@@ -110,12 +134,15 @@ class RouterTest extends PHPUnit_Framework_TestCase
         });
         $_SERVER['REQUEST_URI'] = '/foo/bar/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals('ok', $state);
+        yield assert($state == 'ok');
     }
 
-    public function testRouteHost()
+    /**
+     * Routers can have multiple domains {?} and URLs only match the defined
+     * domain {?}. This works for multiple routes {?} {?}.
+     */
+    public function testRouteHost(Router $router)
     {
-        $router = new Router;
         $router->when('http://foo.com/', function ($router) {
             $router->when('/foo/')->then('foo', function () {
                 return 'foo';
@@ -129,31 +156,36 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $_SERVER['HTTP_HOST'] = 'foo.com';
         $_SERVER['REQUEST_URI'] = '/foo/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals('foo', $state);
+        yield assert($state == 'foo');
         $_SERVER['REQUEST_URI'] = '/bar/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals(null, $state);
+        yield assert(is_null($state));
         $_SERVER['HTTP_HOST'] = 'bar.com';
         $_SERVER['REQUEST_URI'] = '/bar/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals('bar', $state);
+        yield assert($state == 'bar');
         $_SERVER['REQUEST_URI'] = '/foo/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals(null, $state);
+        yield assert(is_null($state));
     }
 
-    public function testAngular()
+    /**
+     * Routes can use Angular-style parameters {?}.
+     */
+    public function testAngular(Router $router)
     {
-        $router = new Router;
         $router->when('/:angular/')->then('foo', function ($angular) {
             return $angular;
         });
         $_SERVER['REQUEST_URI'] = '/somestring/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals('somestring', $state);
+        yield assert($state == 'somestring');
     }
 
-    public function testBraces()
+    /**
+     * Routes can use braces-style parameters (e.g. Symfony) {?}.
+     */
+    public function testBraces(Router $router)
     {
         $router = new Router;
         $router->when('/{braces}/')->then('foo', function ($braces) {
@@ -161,30 +193,34 @@ class RouterTest extends PHPUnit_Framework_TestCase
         });
         $_SERVER['REQUEST_URI'] = '/somestring/';
         $state = $router(ServerRequestFactory::fromGlobals());
-        $this->assertEquals('somestring', $state);
+        yield assert($state == 'somestring');
     }
 
-    public function testNomatchUrl()
+    /**
+     * Routers can define 'fake' routes for error handling {?}.
+     */
+    public function testNomatchUrl(Router $router)
     {
         $router = new Router;
         $router->when(null)->then('404', '404');
         $state = $router->get('404');
-        $this->assertEquals(
-            '404',
-            $state([], ServerRequestFactory::fromGlobals())
-        );
+        yield assert($state([], ServerRequestFactory::fromGlobals()) == '404');
     }
 
-    public function testGenerate()
+    /**
+     * When generating a route, the domain is prepended if it differs from the
+     * current domain {?}. However, if it's the same by default it is
+     * omitted {?}.
+     */
+    public function testGenerate(Router $router)
     {
-        $router = new Router;
         $router->when("http://foo.com/(?'p1':\w+)/{p2}/:p3/")
                ->then('test', function () {});
         $url = $router->generate(
             'test',
             ['p1' => 'foo', 'p2' => 'bar', 'p3' => 'baz']
         );
-        $this->assertEquals('http://foo.com/foo/bar/baz/', $url);
+        yield assert($url == 'http://foo.com/foo/bar/baz/');
         $_SERVER['HTTP_HOST'] = 'foo.com';
         $router = new Router;
         $router->when("http://foo.com/(?'p1':\w+)/{p2}/:p3/")
@@ -193,13 +229,15 @@ class RouterTest extends PHPUnit_Framework_TestCase
             'test',
             ['p1' => 'foo', 'p2' => 'bar', 'p3' => 'baz']
         );
-        $this->assertEquals('/foo/bar/baz/', $url);
+        yield assert($url == '/foo/bar/baz/');
     }
 
-    public function testPipeWithUrlArguments()
+    /**
+     * Routers can have a pipeline where arguments can be injected {?}.
+     */
+    public function testPipeWithUrlArguments(Router $router)
     {
-        $router = new Router;
-        $this->expectOutputString('12ok');
+        ob_start();
         $router->when('/{foo}/{bar}/')
             ->pipe(function ($request, $bar, $foo) {
                 echo $foo;
@@ -209,12 +247,15 @@ class RouterTest extends PHPUnit_Framework_TestCase
             ->then('test', 'ok');
         $_SERVER['REQUEST_URI'] = '/1/2/';
         echo $router(ServerRequestFactory::fromGlobals());
+        yield assert(ob_get_clean() == '12ok');
     }
 
-    public function testActionOverride()
+    /**
+     * We can override the action on a state and inject another action {?}.
+     */
+    public function testActionOverride(Router $router)
     {
-        $router = new Router;
-        $this->expectOutputString('barfoobar');
+        ob_start();
         $router->when('/{foo}/{bar}/')
             ->then('ok', function ($foo, $bar) {
                 return $foo.$bar;
@@ -225,6 +266,7 @@ class RouterTest extends PHPUnit_Framework_TestCase
         $_SERVER['REQUEST_URI'] = '/foo/bar/';
         $_SERVER['REQUEST_METHOD'] = 'POST';
         echo $router(ServerRequestFactory::fromGlobals());
+        yield assert(ob_get_clean() == 'barfoobar');
     }
 }
 
