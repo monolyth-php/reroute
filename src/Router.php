@@ -120,9 +120,6 @@ class Router implements StageInterface
      * Setup (part of) a URL for catching. The chain is called on match and
      * before control is delegated.
      *
-     * to (sub) routers or `then`
-     * calls.
-     *
      * @param string|null $url The URL(part) to match for this state. If null,
      *  something randomly invalid is used (useful for defining named states for
      *  error pages).
@@ -134,10 +131,30 @@ class Router implements StageInterface
         if (is_null($url)) {
             $url = '!!!!'.rand(0, 999).microtime();
         } else {
+            $replace = function ($match) {
+                $base = "(?'{$match[1]}'\w+";
+                if (isset($match[2]) && $match[2] == '?') {
+                    if (isset($match[3]) && $match[3] == '/') {
+                        $base .= '/';
+                    }
+                    $base .= ')?';
+                } else {
+                    $base .= ')'.$match[3];
+                }
+                return $base;
+            };
             // Brace style to regex:
-            $url = preg_replace('@{([a-z]\w*)}@', "(?'\\1'\w+)", $url);
+            $url = preg_replace_callback(
+                '@{([a-z]\w*)}(\??)(/?)@',
+                $replace,
+                $url
+            );
             // Angular style to regex:
-            $url = preg_replace('@:([a-z]\w*)@', "(?'\\1'\w+)", $url);
+            $url = preg_replace_callback(
+                '@:([a-z]\w*)(\??)(/?)@',
+                $replace,
+                $url
+            );
         }
         $parts = parse_url($this->url);
         $check = parse_url($url);
@@ -314,6 +331,7 @@ class Router implements StageInterface
                 unset($matches[0]);
                 self::$matchedArguments += $matches;
                 if ($res = $router($request)) {
+                    self::$matchedArguments = [];
                     return $res;
                 }
             }
