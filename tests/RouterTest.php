@@ -268,5 +268,56 @@ class RouterTest
         echo $router(ServerRequestFactory::fromGlobals());
         yield assert(ob_get_clean() == 'barfoobar');
     }
+
+    /**
+     * When matching a state with a default argument (regex-style), it matches
+     * either with {?} or without that argument being passed {?}.
+     */
+    public function testDefaultArgument(Router $router)
+    {
+        $router->when("/(?'id'\d+/)?")->then(function ($id = "1") {
+            return $id;
+        });
+        $_SERVER['REQUEST_URI'] = '/2/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        yield assert($state === "2");
+        $_SERVER['REQUEST_URI'] = '/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        yield assert($state === "1");
+    }
+
+    /**
+     * When matching a state with a default argument (Angular-style), it matches
+     * either with {?} or without that argument being passed {?}.
+     */
+    public function testDefaultArgumentAngular(Router $router)
+    {
+        $router->when("/:id?/")->then(function ($id = "1") {
+            return $id;
+        });
+        $_SERVER['REQUEST_URI'] = '/2/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        yield assert($state === "2");
+        $_SERVER['REQUEST_URI'] = '/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        yield assert($state == "1");
+    }
+
+    /**
+     * When matching a state with a default argument (braces-style), it matches
+     * either with {?} or without that argument being passed {?}.
+     */
+    public function testDefaultArgumentBraces(Router $router)
+    {
+        $router->when("/{id}?/")->then(function ($id = "1") {
+            return $id;
+        });
+        $_SERVER['REQUEST_URI'] = '/2/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        yield assert($state === "2");
+        $_SERVER['REQUEST_URI'] = '/';
+        $state = $router(ServerRequestFactory::fromGlobals());
+        yield assert($state === "1");
+    }
 }
 
