@@ -162,9 +162,9 @@ $router->when('/{param}/');
 ```
 
 When using placeholders, note that one has less control over parameter types.
-Using regexes is more powerfull since you can force e.g. `"/(?'id'\d+)/"` to
-match and integer. PHP 7 supports extended type hinting in callables, so this
-will be improved in a future release.
+Using regexes is more powerful since you can force e.g. `"/(?'id'\d+)/"` to
+match an integer. PHP 7 supports extended type hinting in callables, so this
+will be further improved in a future release.
 
 ## Inspecting the current request
 By type hinting a parameter as an instance of
