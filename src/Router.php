@@ -196,12 +196,16 @@ class Router implements StageInterface
             $name = null;
         }
         $this->name = $name;
-        $this->state = new State($name, $state);
-        $this->pipe(new Pipe(function ($request) {
-            return $request instanceof ResponseInterface ?
-                $request :
-                $this->state;
-        }));
+        if (!isset($this->state)) {
+            $this->state = new State($name, $state);
+            $this->pipe(new Pipe(function ($request) {
+                return $request instanceof ResponseInterface ?
+                    $request :
+                    $this->state;
+            }));
+        } else {
+            $this->state->addCallback('GET', $state);
+        }
         return $this;
     }
 
