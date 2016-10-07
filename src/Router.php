@@ -136,7 +136,7 @@ class Router implements StageInterface
             $url = '!!!!'.rand(0, 999).microtime();
         } else {
             $replace = function ($match) {
-                $base = "(?'{$match[1]}'\w+";
+                $base = "(?'{$match[1]}'[a-zA-Z0-9-_]+";
                 if (isset($match[2]) && $match[2] == '?') {
                     if (isset($match[3]) && $match[3] == '/') {
                         $base .= '/';
