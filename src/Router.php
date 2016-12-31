@@ -337,7 +337,7 @@ class Router implements StageInterface
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match@", $url, $matches)) {
                 unset($matches[0]);
-                self::$matchedArguments += $matches;
+                self::$matchedArguments = $matches + self::$matchedArguments;
                 if ($res = $router($request)) {
                     self::$matchedArguments = [];
                     return $res;
