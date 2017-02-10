@@ -438,10 +438,13 @@ class Router implements StageInterface
      */
     protected function normalize($url, $scheme = 'http', $host = 'localhost')
     {
-        $parts = parse_url($url);
-        $scheme = isset($parts['scheme']) ? $parts['scheme'] : $scheme;
-        $host = isset($parts['host']) ? $parts['host'] : $host;
-        $url = preg_replace("@^$scheme://$host@", '', $url);
+        if (preg_match("@^(https?)@", $url, $match)) {
+            $scheme = $match[1];
+        }
+        if (preg_match("@^$scheme://(.*?)(/|$)@", $url, $match)) {
+            $host = $match[1];
+        }
+        $url = preg_replace("@^$scheme://.*?(/|$)@", '$1', $url);
         return "$scheme://$host$url";
     }
 
