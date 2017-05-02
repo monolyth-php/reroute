@@ -402,7 +402,7 @@ class Router implements StageInterface
             }
         }
         if ($shortest and $current = $this->currentHost()) {
-            $url = preg_replace("@^$current@", '/', $url);
+            $url = preg_replace("@^$current/?@", '/', $url);
         }
         return $url;
     }
