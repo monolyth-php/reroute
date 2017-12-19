@@ -1,6 +1,6 @@
 {
     "name": "monolyth/reroute",
-    "description": "Extremely flexible PHP5 router for the Monolyth unframework",
+    "description": "Extremely flexible router for the Monolyth unframework",
     "license": "MIT",
     "keywords": ["php","mvc","router"],
     "authors": [
@@ -10,6 +10,7 @@
         }
     ],
     "require": {
+        "php": ">=7.1",
         "jakeasmith/http_build_url": "^1.0.0",
         "zendframework/zend-diactoros": "^1.2",
         "league/pipeline": "^0.1.0"
