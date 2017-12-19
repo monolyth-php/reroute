@@ -404,7 +404,7 @@ class Router implements StageInterface
         if ($shortest and $current = $this->currentHost()) {
             $url = preg_replace("@^$current/?@", '/', $url);
         }
-        return $url;
+        return preg_replace('@(?<!:)/{2,}@', '/', $url);
     }
 
     /**
