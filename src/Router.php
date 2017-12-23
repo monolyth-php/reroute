@@ -22,6 +22,12 @@ class Router implements StageInterface
 {
     /**
      * @var array
+     * "Global" storing all named states, for reference.
+     */
+    protected static $namedStates = [];
+
+    /**
+     * @var array
      * Array storing defined routes.
      */
     protected $routes = [];
@@ -85,6 +91,7 @@ class Router implements StageInterface
      * currently matched URL parameters.
      *
      * @param callable $stage Callable stage to add.
+     * @return Monolyth\Reroute\Router
      * @throws InvalidArgumentException if any of the additional argument wasn't
      *  matched by name in the URL.
      */
@@ -128,7 +135,7 @@ class Router implements StageInterface
      *  something randomly invalid is used (useful for defining named states for
      *  error pages).
      * @param callable $callback Optional grouping callback.
-     * @return Reroute\Router A new sub-router.
+     * @return Monolyth\Reroute\Router A new sub-router.
      */
     public function when($url, callable $callback = null) : Router
     {
@@ -187,7 +194,7 @@ class Router implements StageInterface
      * @param string $name The (preferably) unique optional name of this state.
      * @param mixed $state A valid state for the matched URL.
      * @return self The current router, for chaining.
-     * @see Reroute\Route::generate
+     * @see Monolyth\Reroute\Route::generate
      */
     public function then($name, $state = null) : Router
     {
@@ -205,6 +212,9 @@ class Router implements StageInterface
             }));
         } else {
             $this->state->addCallback('GET', $state);
+        }
+        if (isset($name)) {
+            self::$namedStates[$name] = $this;
         }
         return $this;
     }
@@ -295,7 +305,7 @@ class Router implements StageInterface
      * @return Monolyth\Reroute\State|null If succesful, the corresponding state is
      *  returned, otherwise null (the implementor should then show a 404 or
      *  something else notifying the user).
-     * @see Reroute\Router::__invoke
+     * @see Monolyth\Reroute\Router::__invoke
      */
     public function process($payload) :? State
     {
@@ -350,9 +360,6 @@ class Router implements StageInterface
     /**
      * Get the state object identified by $name. This can be used for further
      * processing before control is relinquished.
-     *
-     * @return Monolyth\Reroute\State
-     * @throws DomainException
      */
     public function get($name)
     {
@@ -374,11 +381,12 @@ class Router implements StageInterface
      * @return string A URI pointing to the requested state.
      * @throws DomainException if no state called `$name` exists.
      */
-    public function generate($name, array $arguments = [], $shortest = true) : string
+    public function generate($name, array $arguments = [], $shortest = true)
     {
-        if (!($state = $this->findStateRecursive($name))) {
+        if (!isset(self::$namedStates[$name])) {
             throw new DomainException("Unknown state: $name");
         }
+        $state = self::$namedStates[$name];
         $url = $state->url;
         // For all arguments, map the values back into the URL:
         preg_match_all(
@@ -408,26 +416,6 @@ class Router implements StageInterface
             $url = preg_replace("@^$current/?@", '/', $url);
         }
         return preg_replace('@(?<!:)/{2,}@', '/', $url);
-    }
-
-    /**
-     * Internal helper method to recurse through subrouters when looking up a
-     * named state.
-     *
-     * @param string $name The name of the state to find.
-     * @return Monolyth\Reroute\State|null The found State on success, or null.
-     */
-    protected function findStateRecursive($name) :? State
-    {
-        if (!isset($this->state) || $this->name != $name) {
-            foreach ($this->routes as $url => $router) {
-                if ($state = $router->findStateRecursive($name)) {
-                    return $state;
-                }
-            }
-            return null;
-        }
-        return $this;
     }
 
     /**
