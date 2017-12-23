@@ -363,10 +363,10 @@ class Router implements StageInterface
      */
     public function get($name)
     {
-        if (!($state = $this->findStateRecursive($name))) {
+        if (!isset(self::$namedStates[$name])) {
             throw new DomainException("Unknown state: $name");
         }
-        return $state->state;
+        return self::$namedStates[$name]->state;
     }
 
     /**
