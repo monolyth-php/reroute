@@ -12,7 +12,7 @@ return function ($test) : Generator {
     });
 
     /**We can resolve a route and it returns the desired state */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when('/')->then('foo', 'Hello world!');
         $_SERVER['REQUEST_URI'] = '/';
         $state = $router(ServerRequestFactory::fromGlobals());
@@ -20,7 +20,7 @@ return function ($test) : Generator {
     };
 
     /** When passing unnamed parameters, they get injected */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when("/(\d+)/")->then('foo', function ($id) {
             return $id;
         });
@@ -30,8 +30,7 @@ return function ($test) : Generator {
     };
 
     /** When passing named parameters, they get injected */
-    yield function () use ($router) {
-        $router = new Router;
+    yield function () use (&$router) {
         $router->when("/(?'id'\d+)/")->then('foo', function ($id) {
             return $id;
         });
@@ -41,8 +40,7 @@ return function ($test) : Generator {
     };
 
     /** When passing named parameters, we can inject them in any order we like */
-    yield function () use ($router) {
-        $router = new Router;
+    yield function () use (&$router) {
         $router->when("/(?'first'\w+)/(?'last'\w+)/")
                ->then('foo', function ($last, $first) {
                     return "$first $last";
@@ -53,8 +51,7 @@ return function ($test) : Generator {
     };
 
     /** When injecting the current request it can be at any place in the argument list of the callback */
-    yield function () use ($router) {
-        $router = new Router;
+    yield function () use (&$router) {
         $router->when("/(?'foo'\w+)/(\w+)/")
                ->then('foo', function ($bar, RequestInterface $request, $foo) {
                     $VERB = $request->getMethod();
@@ -66,7 +63,7 @@ return function ($test) : Generator {
     };
 
     /** When matching any query parameters should be ignored */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when('/')->then('foo', function () { return 'ok'; });
         $_SERVER['REQUEST_URI'] = '/?foo=bar';
         $state = $router(ServerRequestFactory::fromGlobals());
@@ -74,7 +71,7 @@ return function ($test) : Generator {
     };
 
     /** When querying for an undefined state a DomainException is thrown */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $e = null;
         try {
             $state = $router->get('invalid');
@@ -84,7 +81,7 @@ return function ($test) : Generator {
     };
 
     /** Routes can be nested using chaining */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when('/foo/')
                ->when('/bar/')->then('foo', function () { return 'ok'; });
         $_SERVER['REQUEST_URI'] = '/foo/bar/';
@@ -93,7 +90,7 @@ return function ($test) : Generator {
     };
 
     /** Routes can be nested using callbacks */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when('/foo/', function ($router) {
             $router->when('/bar/')->then('foo', function () {
                 return 'ok';
@@ -105,7 +102,7 @@ return function ($test) : Generator {
     };
 
     /** Routers can have multiple domains and URLs only match the defined domain. This works for multiple routes. */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when('http://foo.com/', function ($router) {
             $router->when('/foo/')->then('foo', function () {
                 return 'foo';
@@ -133,7 +130,7 @@ return function ($test) : Generator {
     };
 
     /** Routes can use Angular-style parameters */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when('/:angular/')->then('foo', function ($angular) {
             return $angular;
         });
@@ -143,7 +140,7 @@ return function ($test) : Generator {
     };
 
     /** Routes can use braces-style parameters (e.g. Symfony) */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when('/{braces}/')->then('foo', function ($braces) {
             return $braces;
         });
@@ -153,7 +150,7 @@ return function ($test) : Generator {
     };
 
     /** Routers can define 'fake' routes for error handling */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when(null)->then('404', '404');
         $state = $router->get('404');
         assert($state([], ServerRequestFactory::fromGlobals()) == '404');
@@ -163,7 +160,7 @@ return function ($test) : Generator {
      * When generating a route, the domain is prepended if it differs from the current domain.
      * However, if it's the same by default it is omitted.
      */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when("http://foo.com/(?'p1':\w+)/{p2}/:p3/")
                ->then('test', function () {});
         $url = $router->generate(
@@ -172,6 +169,7 @@ return function ($test) : Generator {
         );
         assert($url == 'http://foo.com/foo/bar/baz/');
         $_SERVER['HTTP_HOST'] = 'foo.com';
+        $router = new Router;
         $router->when("http://foo.com/(?'p1':\w+)/{p2}/:p3/")
                ->then('test', function () {});
         $url = $router->generate(
@@ -182,7 +180,7 @@ return function ($test) : Generator {
     };
 
     /** Routers can have a pipeline where arguments can be injected */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         ob_start();
         $router->when('/{foo}/{bar}/')
             ->pipe(function ($request, $bar, $foo) {
@@ -197,7 +195,7 @@ return function ($test) : Generator {
     };
 
     /** We can override the action on a state and inject another action */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         ob_start();
         $router->when('/{foo}/{bar}/')
             ->then('ok', function ($foo, $bar) {
@@ -213,7 +211,7 @@ return function ($test) : Generator {
     };
 
     /** When matching a state with a default argument (regex-style), it matches either with or without that argument being passed */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when("/(?'id'\d+/)?")->then(function ($id = "1") {
             return $id;
         });
@@ -226,7 +224,7 @@ return function ($test) : Generator {
     };
 
     /** When matching a state with a default argument (Angular-style), it matches either with or without that argument being passed */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when("/:id?/")->then(function ($id = "1") {
             return $id;
         });
@@ -239,7 +237,7 @@ return function ($test) : Generator {
     };
 
     /** When matching a state with a default argument (braces-style), it matches either with or without that argument being passed */
-    yield function () use ($router) {
+    yield function () use (&$router) {
         $router->when("/{id}?/")->then(function ($id = "1") {
             return $id;
         });
