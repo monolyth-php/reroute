@@ -22,12 +22,18 @@ class Router implements StageInterface
 {
     /**
      * @var array
+     * "Global" storing all named states, for reference.
+     */
+    protected static $namedStates = [];
+
+    /**
+     * @var array
      * Array storing defined routes.
      */
     protected $routes = [];
 
     /**
-     * @var Reroute\State
+     * @var Monolyth\Reroute\State
      * Endstate for this route.
      */
     protected $state;
@@ -85,10 +91,11 @@ class Router implements StageInterface
      * currently matched URL parameters.
      *
      * @param callable $stage Callable stage to add.
+     * @return Monolyth\Reroute\Router
      * @throws InvalidArgumentException if any of the additional argument wasn't
      *  matched by name in the URL.
      */
-    public function pipe(callable $stage)
+    public function pipe(callable $stage) : Router
     {
         if (!($stage instanceof StageInterface)) {
             $stage = new Pipe(function ($payload) use ($stage) {
@@ -128,9 +135,9 @@ class Router implements StageInterface
      *  something randomly invalid is used (useful for defining named states for
      *  error pages).
      * @param callable $callback Optional grouping callback.
-     * @return Reroute\Router A new sub-router.
+     * @return Monolyth\Reroute\Router A new sub-router.
      */
-    public function when($url, callable $callback = null)
+    public function when($url, callable $callback = null) : Router
     {
         if (is_null($url)) {
             $url = '!!!!'.rand(0, 999).microtime();
@@ -187,9 +194,9 @@ class Router implements StageInterface
      * @param string $name The (preferably) unique optional name of this state.
      * @param mixed $state A valid state for the matched URL.
      * @return self The current router, for chaining.
-     * @see Reroute\Route::generate
+     * @see Monolyth\Reroute\Route::generate
      */
-    public function then($name, $state = null)
+    public function then($name, $state = null) : Router
     {
         if (!isset($state)) {
             $state = $name;
@@ -206,6 +213,9 @@ class Router implements StageInterface
         } else {
             $this->state->addCallback('GET', $state);
         }
+        if (isset($name)) {
+            self::$namedStates[$name] = $this;
+        }
         return $this;
     }
 
@@ -215,7 +225,7 @@ class Router implements StageInterface
      * @param mixed $state A valid state to respond with.
      * @return self The current router, for chaining.
      */
-    public function post($state)
+    public function post($state) : Router
     {
         if (!isset($this->state)) {
             $this->then(null, function() {});
@@ -230,7 +240,7 @@ class Router implements StageInterface
      * @param mixed $state A valid state to respond with.
      * @return self The current router, for chaining.
      */
-    public function put($state)
+    public function put($state) : Router
     {
         if (!isset($this->state)) {
             $this->then(null, function() {});
@@ -246,7 +256,7 @@ class Router implements StageInterface
      * @param mixed $state A valid state to respond with.
      * @return self The current router, for chaining.
      */
-    public function delete($state)
+    public function delete($state) : Router
     {
         if (!isset($this->state)) {
             $this->then(null, function() {});
@@ -261,7 +271,7 @@ class Router implements StageInterface
      * @param mixed $state A valid state to respond with.
      * @return self The current router, for chaining.
      */
-    public function head($state)
+    public function head($state) : Router
     {
         if (!isset($this->state)) {
             $this->then(null, function() {});
@@ -277,7 +287,7 @@ class Router implements StageInterface
      * @param mixed $state A valid state to respond with.
      * @return self The current router, for chaining.
      */
-    public function options($state)
+    public function options($state) : Router
     {
         if (!isset($this->state)) {
             $this->then(null, function() {});
@@ -292,24 +302,24 @@ class Router implements StageInterface
      *
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
      *  Defaults to the current request.
-     * @return Reroute\State|null If succesful, the corresponding state is
+     * @return Monolyth\Reroute\State|null If succesful, the corresponding state is
      *  returned, otherwise null (the implementor should then show a 404 or
      *  something else notifying the user).
-     * @see Reroute\Router::__invoke
+     * @see Monolyth\Reroute\Router::__invoke
      */
-    public function process($payload)
+    public function process($payload) :? State
     {
         return $this($payload);
     }
 
     /**
-     * Attempt to resolve a Reroute\State associated with a request.
+     * Attempt to resolve a Monolyth\Reroute\State associated with a request.
      *
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
      *  Defaults to the current request.
-     * @return Reroute\State|null If succesful, the corresponding state is
-     *  invoked and its response returned, otherwise null (the implementor
-     *  should then show a 404 or something else notifying the user).
+     * @return mixed If succesful, the corresponding state is invoked and its
+     *  response returned, otherwise null (the implementor should then show a
+     *  404 or something else notifying the user).
      */
     public function __invoke(RequestInterface $request = null)
     {
@@ -353,10 +363,10 @@ class Router implements StageInterface
      */
     public function get($name)
     {
-        if (!($state = $this->findStateRecursive($name))) {
+        if (!isset(self::$namedStates[$name])) {
             throw new DomainException("Unknown state: $name");
         }
-        return $state->state;
+        return self::$namedStates[$name]->state;
     }
 
     /**
@@ -373,9 +383,10 @@ class Router implements StageInterface
      */
     public function generate($name, array $arguments = [], $shortest = true)
     {
-        if (!($state = $this->findStateRecursive($name))) {
+        if (!isset(self::$namedStates[$name])) {
             throw new DomainException("Unknown state: $name");
         }
+        $state = self::$namedStates[$name];
         $url = $state->url;
         // For all arguments, map the values back into the URL:
         preg_match_all(
@@ -408,26 +419,6 @@ class Router implements StageInterface
     }
 
     /**
-     * Internal helper method to recurse through subrouters when looking up a
-     * named state.
-     *
-     * @param string $name The name of the state to find.
-     * @return Reroute\State|null The found State on success, or null.
-     */
-    protected function findStateRecursive($name)
-    {
-        if (!isset($this->state) || $this->name != $name) {
-            foreach ($this->routes as $url => $router) {
-                if ($state = $router->findStateRecursive($name)) {
-                    return $state;
-                }
-            }
-            return null;
-        }
-        return $this;
-    }
-
-    /**
      * Internal helper method to "normalize" the current URI (e.g. make sure
      * it has a scheme and a host).
      *
@@ -436,7 +427,7 @@ class Router implements StageInterface
      * @param string $host Optional fallback host. Defaults to `'localhost'`.
      * @return string A fully formed URI.
      */
-    protected function normalize($url, $scheme = 'http', $host = 'localhost')
+    protected function normalize($url, $scheme = 'http', $host = 'localhost') : string
     {
         if (preg_match("@^(https?)@", $url, $match)) {
             $scheme = $match[1];
@@ -453,7 +444,7 @@ class Router implements StageInterface
      *
      * @return string The current host.
      */
-    public function currentHost()
+    public function currentHost() : string
     {
         $url = $this->request->getUri();
         $parts = parse_url($url);
@@ -466,7 +457,7 @@ class Router implements StageInterface
      *
      * @return string The current URI.
      */
-    public function currentUrl()
+    public function currentUrl() : string
     {
         $url = $this->request->getUri();
         $parts = parse_url($url);
