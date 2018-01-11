@@ -90,40 +90,42 @@ class Router implements StageInterface
      * request or response object). Subsequent arguments are taken from the
      * currently matched URL parameters.
      *
-     * @param callable $stage Callable stage to add.
+     * @param callable $stages Callable stages to add.
      * @return Monolyth\Reroute\Router
      * @throws InvalidArgumentException if any of the additional argument wasn't
      *  matched by name in the URL.
      */
-    public function pipe(callable $stage) : Router
+    public function pipe(callable ...$stages) : Router
     {
-        if (!($stage instanceof StageInterface)) {
-            $stage = new Pipe(function ($payload) use ($stage) {
-                if ($stage instanceof Closure) {
-                    $reflection = new ReflectionFunction($stage);
-                } elseif (is_array($stage)) {
-                    $reflection = new ReflectionMethod($stage[0], $stage[1]);
-                } else {
-                    $reflection = new ReflectionMethod($stage, '__invoke');
-                }
-                $parameters = $reflection->getParameters();
-                $args = [];
-                foreach ($parameters as $key => $param) {
-                    if (!$key) {
-                        $args[] = $payload;
-                    } elseif (isset(self::$matchedArguments[$param->name])) {
-                        $args[] = self::$matchedArguments[$param->name];
+        foreach ($stages as $stage) {
+            if (!($stage instanceof StageInterface)) {
+                $stage = new Pipe(function ($payload) use ($stage) {
+                    if ($stage instanceof Closure) {
+                        $reflection = new ReflectionFunction($stage);
+                    } elseif (is_array($stage)) {
+                        $reflection = new ReflectionMethod($stage[0], $stage[1]);
                     } else {
-                        throw new InvalidArgumentException(
-                            "Pipe expects variable {$param->name}, but it is ".
-                            "not present in the URL being resolved."
-                        );
+                        $reflection = new ReflectionMethod($stage, '__invoke');
                     }
-                }
-                return call_user_func_array($stage, $args);
-            });
+                    $parameters = $reflection->getParameters();
+                    $args = [];
+                    foreach ($parameters as $key => $param) {
+                        if (!$key) {
+                            $args[] = $payload;
+                        } elseif (isset(self::$matchedArguments[$param->name])) {
+                            $args[] = self::$matchedArguments[$param->name];
+                        } else {
+                            throw new InvalidArgumentException(
+                                "Pipe expects variable {$param->name}, but it is ".
+                                "not present in the URL being resolved."
+                            );
+                        }
+                    }
+                    return call_user_func_array($stage, $args);
+                });
+            }
+            $this->pipeline->add($stage);
         }
-        $this->pipeline->add($stage);
         return $this;
     }
 
