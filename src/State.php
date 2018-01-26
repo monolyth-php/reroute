@@ -101,6 +101,42 @@ class State
             null;
     }
 
+    public function get($state) : State
+    {
+        $this->addCallback('GET', $state);
+        return $this;
+    }
+
+    public function post($state) : State
+    {
+        $this->addCallback('POST', $state);
+        return $this;
+    }
+
+    public function put($state) : State
+    {
+        $this->addCallback('PUT', $state);
+        return $this;
+    }
+
+    public function delete($state) : State
+    {
+        $this->addCallback('DELETE', $state);
+        return $this;
+    }
+
+    public function head($state) : State
+    {
+        $this->addCallback('HEAD', $state);
+        return $this;
+    }
+
+    public function options($state) : State
+    {
+        $this->addCallback('OPTIONS', $state);
+        return $this;
+    }
+
     /**
      * Add a state callback for an method. If the state is something
      * non-callable it is auto-wrapped in a Closure.
@@ -108,7 +144,7 @@ class State
      * @param string $method The method to add this state for.
      * @param mixed $state The state to respond with.
      */
-    public function addCallback($method, $state) : void
+    private function addCallback(string $method, $state) : void
     {
         $state = $this->makeCallable($state);
         $this->actions[$method] = $state;
