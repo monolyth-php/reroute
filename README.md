@@ -340,6 +340,32 @@ Generation is only possible for named states, since anonymous ones obviously
 could only be retrieved by their actual URL (in which case you might as well
 hardcode it...). Use named states if your URLs are likely to change over time!
 
+### Cascading arguments
+When generating a route in a subrouter, all named arguments set in the parent
+router are automatigically injected into the passed arguments.
+
+An example:
+
+```php
+<?php
+
+use Zend\Diactoros\Response\RedirectResponse;
+
+$router->when("/(?'language'[a-z]{2})/", function ($router) {
+    $router->when('/')->then('home', function () { /* some page */ });
+    $router->when('/home/')->then(function () use ($router) {
+        return new RedirectResponse($router->generate('home'));
+    });
+});
+
+// Now, assuming we navigate to `/en/home/` we get redirected to `/en/`!
+
+```
+
+Of course, you could also inject `string $langauge` as a parameter in the
+sub-route, but this gets tiresome and might be cumbersome if you need to
+generate a route from some view class.
+
 ## Handling 404s and other errors
 ```php
 <?php
