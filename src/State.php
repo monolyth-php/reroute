@@ -55,7 +55,7 @@ class State
      * @param Psr\Http\Message\RequestInterface $request The current request.
      * @return Psr\Http\Message\ReponseInterface
      */
-    public function __invoke(array $arguments, RequestInterface $request)
+    public function __invoke(array $arguments, RequestInterface $request) : ResponseInterface
     {
         $method = $request->getMethod();
         if (!isset($this->actions[$method])) {
