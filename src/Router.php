@@ -139,7 +139,7 @@ class Router implements StageInterface
      * @param callable $callback Optional grouping callback.
      * @return Monolyth\Reroute\Router A new sub-router.
      */
-    public function when($url, callable $callback = null) : Router
+    public function when(string $url = null, callable $callback = null) : Router
     {
         if (is_null($url)) {
             $url = '!!!!'.rand(0, 999).microtime();
@@ -186,7 +186,7 @@ class Router implements StageInterface
         if (isset($callback)) {
             $callback($this->routes[$url]);
         }
-        return $this->routes[$url];
+        return $this;
     }
 
     /**
@@ -198,7 +198,7 @@ class Router implements StageInterface
      * @return self The current router, for chaining.
      * @see Monolyth\Reroute\Route::generate
      */
-    public function then($name, $state = null) : Router
+    public function then(string $name = null, ...$args) : State
     {
         if (!isset($state)) {
             $state = $name;
@@ -216,9 +216,9 @@ class Router implements StageInterface
             $this->state->addCallback('GET', $state);
         }
         if (isset($name)) {
-            self::$namedStates[$name] = $this;
+            self::$namedStates[$name] = $this->state;
         }
-        return $this;
+        return $this->state;
     }
 
     /**
