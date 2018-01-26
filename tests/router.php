@@ -152,7 +152,7 @@ return function ($test) : Generator {
 
     /** Routers can define 'fake' routes for error handling */
     yield function () use (&$router) {
-        $router->when(null)->get('404');
+        $router->when(null, '404')->get('404');
         $response = $router->get('404');
         assert($response([], ServerRequestFactory::fromGlobals()) == '404');
     };
