@@ -6,6 +6,7 @@ use Exception;
 use ReflectionMethod;
 use ReflectionFunction;
 use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Zend\Diactoros\Response\HtmlResponse;
 use Zend\Diactoros\Response\EmptyResponse;
 
@@ -40,11 +41,10 @@ class State
      * @param null|string The (preferably unique) name of the state.
      * @param mixed $state A valid state.
      */
-    public function __construct($name, $state)
+    public function __construct($name)
     {
         $this->name = $name;
-        $state = $this->makeCallable($state);
-        $this->actions = ['GET' => $state, 'POST' => $state];
+        $this->actions = ['GET' => new EmptyResponse(200), 'POST' => new EmptyResponse(200)];
     }
 
     /**
@@ -53,7 +53,7 @@ class State
      *
      * @param array $arguments All matched URL parameters.
      * @param Psr\Http\Message\RequestInterface $request The current request.
-     * @return mixed Whatever the state eventually resolves to.
+     * @return Psr\Http\Message\ReponseInterface
      */
     public function __invoke(array $arguments, RequestInterface $request)
     {
@@ -82,6 +82,9 @@ class State
             }
             $call = call_user_func_array($call, $args);
         } while (is_callable($call));
+        if (!($call instanceof ResponseInterface)) {
+            $call = new HtmlResponse($call);
+        }
         return $call;
     }
 
