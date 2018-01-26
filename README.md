@@ -366,6 +366,11 @@ Of course, you could also inject `string $langauge` as a parameter in the
 sub-route, but this gets tiresome and might be cumbersome if you need to
 generate a route from some view class.
 
+> Note that arguments passed in the `generate` call's second argument receive
+> precedence of previously matched ones! This means you could explicitly
+> redirect `/en/home/` to `/nl/` in the above example by doing:
+> `$router->generate('home', ['language' => 'nl']);`.
+
 ## Handling 404s and other errors
 ```php
 <?php
