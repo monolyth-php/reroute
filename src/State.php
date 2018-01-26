@@ -6,6 +6,7 @@ use Exception;
 use ReflectionMethod;
 use ReflectionFunction;
 use Psr\Http\Message\RequestInterface;
+use Zend\Diactoros\Response\HtmlResponse;
 use Zend\Diactoros\Response\EmptyResponse;
 
 /**
@@ -126,8 +127,12 @@ class State
             return $state;
         }
         return function () use ($state) {
-            if (is_string($state) && class_exists($state)) {
-                $state = new $state;
+            if (is_string($state)) {
+                if (class_exists($state)) {
+                    $state = new $state;
+                } else {
+                    $state = new HtmlResponse($state);
+                }
             }
             return $state;
         };
