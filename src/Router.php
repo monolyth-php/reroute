@@ -304,12 +304,10 @@ class Router implements StageInterface
      *
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
      *  Defaults to the current request.
-     * @return Monolyth\Reroute\State|null If succesful, the corresponding state is
-     *  returned, otherwise null (the implementor should then show a 404 or
-     *  something else notifying the user).
+     * @return Psr\Http\Message\ResponseInterface|null
      * @see Monolyth\Reroute\Router::__invoke
      */
-    public function process($payload) :? State
+    public function process($payload) :? ResponseInterface
     {
         return $this($payload);
     }
@@ -319,11 +317,12 @@ class Router implements StageInterface
      *
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
      *  Defaults to the current request.
-     * @return mixed If succesful, the corresponding state is invoked and its
-     *  response returned, otherwise null (the implementor should then show a
-     *  404 or something else notifying the user).
+     * @return Psr\Http\Message\ResponseInterface|null If succesful, the
+     *  corresponding state is invoked and its response returned, otherwise null
+     *  (the implementor should then show a 404 or something else notifying the
+     *  user).
      */
-    public function __invoke(RequestInterface $request = null) :? State
+    public function __invoke(RequestInterface $request = null) :? ResponseInterface
     {
         if (isset($request)) {
             $this->request = $request;
