@@ -26,9 +26,9 @@ $ composer require monolyth/reroute
 
 ## Basic Usage
 
-### `when`? `then`!
-Since the Reroute router responds to HTTP requests, we use the `when` and `then`
-methods to respond:
+### Responding to requested URLs
+Since the Reroute router responds to HTTP requests, we use the `when` method to
+define a valid URL:
 
 ```php
 <?php
@@ -36,7 +36,7 @@ methods to respond:
 use Monolyth\Reroute\Router;
 
 $router = new Router('http://example.com');
-$state = $router->when('/some/url/')->then('some-state');
+$state = $router->when('/some/url/', 'some-state');
 ```
 
 `when` starts matching whenever it can, so if your project lives under (for
@@ -46,9 +46,8 @@ match `/bla/my-framework/libs/some/url/` if nothing better was defined.
 > Note that Reroute matches _parts_ of URLs, hence the fact that your defined
 > route starts with `/` doesn't have any special meaning.
 
-`when` returns a new Router with the specified URL as its "base" (the first
-constructor argument). For nested routers (see below), this includes the base
-for _all_ parent routers. Schematically:
+`when` returns a new `State` as a response to the specified URL. This includes
+all URL parts from parents in nested routers (see below). Schematically:
 
 ```php
 <?php
@@ -56,17 +55,19 @@ for _all_ parent routers. Schematically:
 use Monolyth\Reroute\Router;
 
 $router = new Router('http://example.com');
-$foo = $router->when('/foo/');
-$bar = $foo->when('/bar/');
-$baz = $bar->when('/baz/')->then()->get('I match /foo/bar/baz/!');
+$foo = $router->when('/foo/', null, function ($router) {
+    $bar = $router->when('/bar/', null, function ($router) {
+        $baz = $router->when('/baz/')->get('I match http://example.com/foo/bar/baz/!');
+    });
+});
 ```
 
-As per ReRoute v4, `then` returns a `State`. States expose methods for handling
-various HTTP verbs: `get`, `post`, `put`, `delete`, `head` and `options`. The
-argument to the "verb method" is whatever you want to use to respond to the
-request - a callable, an (invokable) class(name) or simply an object conforming
-to the `Psr\Http\Message\ResponseInterface`. Anything callable will
-automatically be called itself until it returns a non-callable instance of
+States expose methods for handling various HTTP verbs: `get`, `post`, `put`,
+`delete`, `head` and `options`. The argument to the "verb method" is whatever
+you want to use to respond to the request - a callable, an (invokable)
+class(name) or simply an object conforming to the
+`Psr\Http\Message\ResponseInterface`. Anything callable will automatically be
+called itself until it returns a non-callable instance of
 `ResponseInterface`.
 
 Note that if you pass a string which could not be resolved to a class (by
@@ -81,11 +82,11 @@ Hence, the following forms are equivalent:
 
 use Zend\Diactoros\Response\HtmlResponse;
 
-$router->when('/some/url/')->then()->get(function () {
+$router->when('/some/url/')->get(function () {
     return 'Hello world!';
 });
-$router->when('/some/url/')->then()->get('Hello world!');
-$router->when('/some/url/')->then()->get(function () {
+$router->when('/some/url/')->get('Hello world!');
+$router->when('/some/url/')->get(function () {
     return new HtmlResponse('Hello world!');
 });
 
@@ -102,9 +103,9 @@ class Foo
     }
 }
 
-$router->when('/some/url/')->then(new Foo);
-$router->when('/some/url/')->then(Foo::class);
-$router->when('/some/url/')->then(['Foo', 'getInstance']);
+$router->when('/some/url/')->get(new Foo);
+$router->when('/some/url/')->get(Foo::class);
+$router->when('/some/url/')->get(['Foo', 'getInstance']);
 ```
 
 ### Named states
@@ -120,7 +121,7 @@ $state = $router->get('myname'); // Ok!
 $state instanceof Reroute\State; // true
 ```
 
-### Resolving a request
+## Resolving a request
 After routes are defined, somewhere in your front controller you'll want to
 actually resolve the request:
 
