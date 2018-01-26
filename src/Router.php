@@ -133,9 +133,7 @@ class Router implements StageInterface
      * Setup (part of) a URL for catching. The chain is called on match and
      * before control is delegated.
      *
-     * @param string|null $url The URL(part) to match for this state. If null,
-     *  something randomly invalid is used (useful for defining named states for
-     *  error pages).
+     * @param string $url The URL(part) to match for this state.
      * @param string|null $name Optional name for this URL/state. Names are
      *  useful since they allow you to change the URL without having to change
      *  the generation anywhere (they'll "just work").
@@ -143,36 +141,32 @@ class Router implements StageInterface
      *  a new subrouter with the `$url` as its base.
      * @return Monolyth\Reroute\State A new state representing the endpoint.
      */
-    public function when(string $url = null, string $name = null, callable $callback = null) : State
+    public function when(string $url, string $name = null, callable $callback = null) : State
     {
-        if (is_null($url)) {
-            $url = '!!!!'.rand(0, 999).microtime();
-        } else {
-            $replace = function ($match) {
-                $base = "(?'{$match[1]}'[a-zA-Z0-9-_]+";
-                if (isset($match[2]) && $match[2] == '?') {
-                    if (isset($match[3]) && $match[3] == '/') {
-                        $base .= '/';
-                    }
-                    $base .= ')?';
-                } else {
-                    $base .= ')'.$match[3];
+        $replace = function ($match) {
+            $base = "(?'{$match[1]}'[a-zA-Z0-9-_]+";
+            if (isset($match[2]) && $match[2] == '?') {
+                if (isset($match[3]) && $match[3] == '/') {
+                    $base .= '/';
                 }
-                return $base;
-            };
-            // Brace style to regex:
-            $url = preg_replace_callback(
-                '@{([a-z]\w*)}(\??)(/?)@',
-                $replace,
-                $url
-            );
-            // Angular style to regex:
-            $url = preg_replace_callback(
-                '@:([a-z]\w*)(\??)(/?)@',
-                $replace,
-                $url
-            );
-        }
+                $base .= ')?';
+            } else {
+                $base .= ')'.$match[3];
+            }
+            return $base;
+        };
+        // Brace style to regex:
+        $url = preg_replace_callback(
+            '@{([a-z]\w*)}(\??)(/?)@',
+            $replace,
+            $url
+        );
+        // Angular style to regex:
+        $url = preg_replace_callback(
+            '@:([a-z]\w*)(\??)(/?)@',
+            $replace,
+            $url
+        );
         $parts = parse_url($this->url);
         $check = parse_url($url);
         if (!isset($check['host'])) {
