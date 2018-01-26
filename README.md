@@ -35,7 +35,7 @@ methods to respond:
 
 use Monolyth\Reroute\Router;
 
-$router = new Router;
+$router = new Router('http://example.com');
 $router->when('/some/url/')->then(function () {
     // Return something.
 });
@@ -57,7 +57,7 @@ for _all_ parent routers. Schematically:
 
 use Monolyth\Reroute\Router;
 
-$router = new Router;
+$router = new Router('http://example.com');
 $foo = $router->when('/foo/');
 $bar = $foo->when('/bar/');
 $baz = $bar->when('/baz/')->then('I match /foo/bar/baz/!');
