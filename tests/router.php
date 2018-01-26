@@ -169,8 +169,8 @@ return function ($test) : Generator {
         );
         assert($url == 'http://foo.com/foo/bar/baz/');
         $_SERVER['HTTP_HOST'] = 'foo.com';
-        $router = new Router;
-        $router->when("http://foo.com/(?'p1':\w+)/{p2}/:p3/")
+        $router = new Router('http://foo.com');
+        $router->when("/(?'p1':\w+)/{p2}/:p3/")
                ->then('test', function () {});
         $url = $router->generate(
             'test',
