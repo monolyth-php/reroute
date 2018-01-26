@@ -400,11 +400,11 @@ class Router implements StageInterface
         foreach ($variables as $idx => $var) {
             $var = $var[0];
             if (preg_match("@\?'(\w+)'@", $var, $named)
-                && isset($arguments[$named[1]])
+                && (isset($arguments[$named[1]]) || isset(self::$matchedArguments[$named[1]]))
             ) {
                 $url = str_replace(
                     $var,
-                    $arguments[$named[1]],
+                    $arguments[$named[1]] ?? self::$matchedArguments[$named[1]],
                     $url
                 );
                 unset($arguments[$named[1]]);
