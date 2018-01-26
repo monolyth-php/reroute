@@ -90,10 +90,10 @@ class State
      *
      * @param string $method The action for which to retrieve the internal
      *  state. Defaults to `"GET"`.
-     * @return mixed The found state on success, or null if no such method was
-     *  defined.
+     * @return Monolyth\Reroute\State|null The found state on success, or null
+     *  if no such method was defined.
      */
-    public function getAction($method = 'GET')
+    public function getAction($method = 'GET') :? State
     {
         return isset($this->actions[$method]) ?
             $this->actions[$method] :
@@ -107,7 +107,7 @@ class State
      * @param string $method The method to add this state for.
      * @param mixed $state The state to respond with.
      */
-    public function addCallback($method, $state)
+    public function addCallback($method, $state) : void
     {
         $state = $this->makeCallable($state);
         $this->actions[$method] = $state;
@@ -120,7 +120,7 @@ class State
      * @return callable The original state if already callable, else the state
      *  wrapped in a closure.
      */
-    private function makeCallable($state)
+    private function makeCallable($state) : callable
     {
         if (is_callable($state)) {
             return $state;
@@ -136,7 +136,7 @@ class State
      * @param string $action An HTTP action verb (e.g. `"GET"`).
      * @return boolean True if supported, else false.
      */
-    private function isHttpAction($action)
+    private function isHttpAction($action) : bool
     {
         return in_array(
             $action,
@@ -153,7 +153,7 @@ class State
      *  request URI.
      * @return array An array of parameters $call can be called with.
      */
-    private function parseArguments(callable $call, array $matches)
+    private function parseArguments(callable $call, array $matches) : array
     {
         if (is_object($call) && method_exists($call, '__invoke')) {
             $reflection = new ReflectionMethod($call, '__invoke');

@@ -22,12 +22,18 @@ class Router implements StageInterface
 {
     /**
      * @var array
+     * "Global" storing all named states, for reference.
+     */
+    protected static $namedStates = [];
+
+    /**
+     * @var array
      * Array storing defined routes.
      */
     protected $routes = [];
 
     /**
-     * @var Reroute\State
+     * @var Monolyth\Reroute\State
      * Endstate for this route.
      */
     protected $state;
@@ -84,39 +90,42 @@ class Router implements StageInterface
      * request or response object). Subsequent arguments are taken from the
      * currently matched URL parameters.
      *
-     * @param callable $stage Callable stage to add.
+     * @param callable $stages Callable stages to add.
+     * @return Monolyth\Reroute\Router
      * @throws InvalidArgumentException if any of the additional argument wasn't
      *  matched by name in the URL.
      */
-    public function pipe(callable $stage)
+    public function pipe(callable ...$stages) : Router
     {
-        if (!($stage instanceof StageInterface)) {
-            $stage = new Pipe(function ($payload) use ($stage) {
-                if ($stage instanceof Closure) {
-                    $reflection = new ReflectionFunction($stage);
-                } elseif (is_array($stage)) {
-                    $reflection = new ReflectionMethod($stage[0], $stage[1]);
-                } else {
-                    $reflection = new ReflectionMethod($stage, '__invoke');
-                }
-                $parameters = $reflection->getParameters();
-                $args = [];
-                foreach ($parameters as $key => $param) {
-                    if (!$key) {
-                        $args[] = $payload;
-                    } elseif (isset(self::$matchedArguments[$param->name])) {
-                        $args[] = self::$matchedArguments[$param->name];
+        foreach ($stages as $stage) {
+            if (!($stage instanceof StageInterface)) {
+                $stage = new Pipe(function ($payload) use ($stage) {
+                    if ($stage instanceof Closure) {
+                        $reflection = new ReflectionFunction($stage);
+                    } elseif (is_array($stage)) {
+                        $reflection = new ReflectionMethod($stage[0], $stage[1]);
                     } else {
-                        throw new InvalidArgumentException(
-                            "Pipe expects variable {$param->name}, but it is ".
-                            "not present in the URL being resolved."
-                        );
+                        $reflection = new ReflectionMethod($stage, '__invoke');
                     }
-                }
-                return call_user_func_array($stage, $args);
-            });
+                    $parameters = $reflection->getParameters();
+                    $args = [];
+                    foreach ($parameters as $key => $param) {
+                        if (!$key) {
+                            $args[] = $payload;
+                        } elseif (isset(self::$matchedArguments[$param->name])) {
+                            $args[] = self::$matchedArguments[$param->name];
+                        } else {
+                            throw new InvalidArgumentException(
+                                "Pipe expects variable {$param->name}, but it is ".
+                                "not present in the URL being resolved."
+                            );
+                        }
+                    }
+                    return call_user_func_array($stage, $args);
+                });
+            }
+            $this->pipeline->add($stage);
         }
-        $this->pipeline->add($stage);
         return $this;
     }
 
@@ -128,9 +137,9 @@ class Router implements StageInterface
      *  something randomly invalid is used (useful for defining named states for
      *  error pages).
      * @param callable $callback Optional grouping callback.
-     * @return Reroute\Router A new sub-router.
+     * @return Monolyth\Reroute\Router A new sub-router.
      */
-    public function when($url, callable $callback = null)
+    public function when($url, callable $callback = null) : Router
     {
         if (is_null($url)) {
             $url = '!!!!'.rand(0, 999).microtime();
@@ -187,7 +196,7 @@ class Router implements StageInterface
      * @param string $name The (preferably) unique optional name of this state.
      * @param mixed $state A valid state for the matched URL.
      * @return self The current router, for chaining.
-     * @see Reroute\Route::generate
+     * @see Monolyth\Reroute\Route::generate
      */
     public function then($name, $state = null) : Router
     {
@@ -205,6 +214,9 @@ class Router implements StageInterface
             }));
         } else {
             $this->state->addCallback('GET', $state);
+        }
+        if (isset($name)) {
+            self::$namedStates[$name] = $this;
         }
         return $this;
     }
@@ -292,10 +304,10 @@ class Router implements StageInterface
      *
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
      *  Defaults to the current request.
-     * @return Reroute\State|null If succesful, the corresponding state is
+     * @return Monolyth\Reroute\State|null If succesful, the corresponding state is
      *  returned, otherwise null (the implementor should then show a 404 or
      *  something else notifying the user).
-     * @see Reroute\Router::__invoke
+     * @see Monolyth\Reroute\Router::__invoke
      */
     public function process($payload) :? State
     {
@@ -303,13 +315,13 @@ class Router implements StageInterface
     }
 
     /**
-     * Attempt to resolve a Reroute\State associated with a request.
+     * Attempt to resolve a Monolyth\Reroute\State associated with a request.
      *
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
      *  Defaults to the current request.
-     * @return Reroute\State|null If succesful, the corresponding state is
-     *  invoked and its response returned, otherwise null (the implementor
-     *  should then show a 404 or something else notifying the user).
+     * @return mixed If succesful, the corresponding state is invoked and its
+     *  response returned, otherwise null (the implementor should then show a
+     *  404 or something else notifying the user).
      */
     public function __invoke(RequestInterface $request = null) :? State
     {
@@ -357,10 +369,10 @@ class Router implements StageInterface
      */
     public function get(string $name)
     {
-        if (!($state = $this->findStateRecursive($name))) {
+        if (!isset(self::$namedStates[$name])) {
             throw new DomainException("Unknown state: $name");
         }
-        return $state->state;
+        return self::$namedStates[$name]->state;
     }
 
     /**
@@ -377,9 +389,10 @@ class Router implements StageInterface
      */
     public function generate(string $name, array $arguments = [], bool $shortest = true) : string
     {
-        if (!($state = $this->findStateRecursive($name))) {
+        if (!isset(self::$namedStates[$name])) {
             throw new DomainException("Unknown state: $name");
         }
+        $state = self::$namedStates[$name];
         $url = $state->url;
         // For all arguments, map the values back into the URL:
         preg_match_all(
@@ -391,11 +404,11 @@ class Router implements StageInterface
         foreach ($variables as $idx => $var) {
             $var = $var[0];
             if (preg_match("@\?'(\w+)'@", $var, $named)
-                && isset($arguments[$named[1]])
+                && (isset($arguments[$named[1]]) || isset(self::$matchedArguments[$named[1]]))
             ) {
                 $url = str_replace(
                     $var,
-                    $arguments[$named[1]],
+                    $arguments[$named[1]] ?? self::$matchedArguments[$named[1]],
                     $url
                 );
                 unset($arguments[$named[1]]);
@@ -409,26 +422,6 @@ class Router implements StageInterface
             $url = preg_replace("@^$current/?@", '/', $url);
         }
         return preg_replace('@(?<!:)/{2,}@', '/', $url);
-    }
-
-    /**
-     * Internal helper method to recurse through subrouters when looking up a
-     * named state.
-     *
-     * @param string $name The name of the state to find.
-     * @return Reroute\State|null The found State on success, or null.
-     */
-    protected function findStateRecursive(string $name) :? State
-    {
-        if (!isset($this->state) || $this->name != $name) {
-            foreach ($this->routes as $url => $router) {
-                if ($state = $router->findStateRecursive($name)) {
-                    return $state;
-                }
-            }
-            return null;
-        }
-        return $this;
     }
 
     /**
