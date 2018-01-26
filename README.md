@@ -36,9 +36,7 @@ methods to respond:
 use Monolyth\Reroute\Router;
 
 $router = new Router('http://example.com');
-$router->when('/some/url/')->then(function () {
-    // Return something.
-});
+$state = $router->when('/some/url/')->then('some-state');
 ```
 
 `when` starts matching whenever it can, so if your project lives under (for
@@ -60,20 +58,36 @@ use Monolyth\Reroute\Router;
 $router = new Router('http://example.com');
 $foo = $router->when('/foo/');
 $bar = $foo->when('/bar/');
-$baz = $bar->when('/baz/')->then('I match /foo/bar/baz/!');
+$baz = $bar->when('/baz/')->then()->get('I match /foo/bar/baz/!');
 ```
 
-What `then` returns can be really anything. If you pass a callable, that in turn
-should eventually return something non-callable. Hence, the following forms are
-equivalent:
+As per ReRoute v4, `then` returns a `State`. States expose methods for handling
+various HTTP verbs: `get`, `post`, `put`, `delete`, `head` and `options`. The
+argument to the "verb method" is whatever you want to use to respond to the
+request - a callable, an (invokable) class(name) or simply an object conforming
+to the `Psr\Http\Message\ResponseInterface`. Anything callable will
+automatically be called itself until it returns a non-callable instance of
+`ResponseInterface`.
+
+Note that if you pass a string which could not be resolved to a class (by
+autoloading), it gets automatically wrapped in a
+`Zend\Diactoros\Response\HtmlResponse`. The same is true for any object not
+implementing the `ResponseInterface` - it will be `__toString`ed and wrapped.
+
+Hence, the following forms are equivalent:
 
 ```php
 <?php
 
-$router->when('/some/url/')->then(function () {
+use Zend\Diactoros\Response\HtmlResponse;
+
+$router->when('/some/url/')->then()->get(function () {
     return 'Hello world!';
-});;
-$router->when('/some/url/')->then('Hello world!');
+});
+$router->when('/some/url/')->then()->get('Hello world!');
+$router->when('/some/url/')->then()->get(function () {
+    return new HtmlResponse('Hello world!');
+});
 
 class Foo
 {
