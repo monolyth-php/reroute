@@ -64,8 +64,8 @@ $baz = $bar->when('/baz/')->then('I match /foo/bar/baz/!');
 ```
 
 What `then` returns can be really anything. If you pass a callable, that in turn
-should eventually return something non-callable. Hence, the following four forms
-are equivalent:
+should eventually return something non-callable. Hence, the following forms are
+equivalent:
 
 ```php
 <?php
@@ -89,6 +89,7 @@ class Foo
 }
 
 $router->when('/some/url/')->then(new Foo);
+$router->when('/some/url/')->then(Foo::class);
 $router->when('/some/url/')->then(['Foo', 'getInstance']);
 ```
 
