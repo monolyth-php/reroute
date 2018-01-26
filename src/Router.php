@@ -74,7 +74,7 @@ class Router implements StageInterface
      * @param League\Pipeline\Pipeline $pipe Optional pipeline to chain onto.
      * @return void
      */
-    public function __construct($url = null, Pipeline $pipe = null)
+    public function __construct($url, Pipeline $pipe = null)
     {
         $this->request = ServerRequestFactory::fromGlobals();
         $this->url = $this->normalize($url);
