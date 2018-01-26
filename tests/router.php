@@ -8,7 +8,7 @@ return function ($test) : Generator {
     $test->beforeEach(function () use (&$router) {
         $_SERVER['HTTP_HOST'] = 'localhost';
         $_SERVER['REQUEST_METHOD'] = 'GET';
-        $router = new Router;
+        $router = new Router('http://localhost');
     });
 
     /**We can resolve a route and it returns the desired state */
