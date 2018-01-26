@@ -136,10 +136,14 @@ class Router implements StageInterface
      * @param string|null $url The URL(part) to match for this state. If null,
      *  something randomly invalid is used (useful for defining named states for
      *  error pages).
-     * @param callable $callback Optional grouping callback.
-     * @return Monolyth\Reroute\Router A new sub-router.
+     * @param string|null $name Optional name for this URL/state. Names are
+     *  useful since they allow you to change the URL without having to change
+     *  the generation anywhere (they'll "just work").
+     * @param callable $callback Optional grouping callback. It gets called with
+     *  a new subrouter with the `$url` as its base.
+     * @return Monolyth\Reroute\State A new state representing the endpoint.
      */
-    public function when(string $url = null, callable $callback = null) : Router
+    public function when(string $url = null, string $name = null, callable $callback = null) : State
     {
         if (is_null($url)) {
             $url = '!!!!'.rand(0, 999).microtime();
@@ -186,7 +190,13 @@ class Router implements StageInterface
         if (isset($callback)) {
             $callback($this->routes[$url]);
         }
-        return $this;
+        $this->state = new State($name);
+        $this->pipe(new Pipe(function ($request) {
+            return $request instanceof ResponseInterface ?
+                $request :
+                $this->state;
+        }));
+        return $this->state;
     }
 
     /**
@@ -349,8 +359,10 @@ class Router implements StageInterface
             if (preg_match("@^$match@", $url, $matches)) {
                 unset($matches[0]);
                 self::$matchedArguments = $matches + self::$matchedArguments;
+                if (preg_match("@^$match$@", $url)) {
+                    return call_user_func($this->state, self::$matchedArguments, $request);
+                }
                 if ($res = $router($request)) {
-                    self::$matchedArguments = [];
                     return $res;
                 }
             }
