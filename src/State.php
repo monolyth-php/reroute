@@ -126,6 +126,9 @@ class State
             return $state;
         }
         return function () use ($state) {
+            if (is_string($state) && class_exists($state)) {
+                $state = new $state;
+            }
             return $state;
         };
     }
