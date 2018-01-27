@@ -145,6 +145,12 @@ class State
             null;
     }
 
+    /**
+     * Add a response for _any_ supported HTTP verb.
+     *
+     * @param mixed $state
+     * @return Monolyth\Reroute\State
+     */
     public function any($state) : State
     {
         foreach (['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'] as $verb) {
@@ -153,6 +159,13 @@ class State
         return $this;
     }
 
+    /**
+     * Add a response for the GET verb. If no POST handler was defined, this
+     * response also doubles for a POST.
+     *
+     * @param mixed $state
+     * @return Monolyth\Reroute\State
+     */
     public function get($state) : State
     {
         $this->addCallback('GET', $state);
@@ -162,43 +175,68 @@ class State
         return $this;
     }
 
+    /**
+     * Add a response for the POST verb.
+     *
+     * @param mixed $state
+     * @return Monolyth\Reroute\State
+     */
     public function post($state) : State
     {
         $this->addCallback('POST', $state);
         return $this;
     }
 
+    /**
+     * Add a response for the PUT verb.
+     *
+     * @param mixed $state
+     * @return Monolyth\Reroute\State
+     */
     public function put($state) : State
     {
         $this->addCallback('PUT', $state);
         return $this;
     }
 
+    /**
+     * Add a response for the DELETE verb.
+     *
+     * @param mixed $state
+     * @return Monolyth\Reroute\State
+     */
     public function delete($state) : State
     {
         $this->addCallback('DELETE', $state);
         return $this;
     }
 
+    /**
+     * Add a response for the HEAD verb.
+     *
+     * @param mixed $state
+     * @return Monolyth\Reroute\State
+     */
     public function head($state) : State
     {
         $this->addCallback('HEAD', $state);
         return $this;
     }
 
+    /**
+     * Add a response for the OPTIONS verb.
+     *
+     * @param mixed $state
+     * @return Monolyth\Reroute\State
+     */
     public function options($state) : State
     {
         $this->addCallback('OPTIONS', $state);
         return $this;
     }
 
-    public function pipeline() : Pipeline
-    {
-        return $this->pipeline->buid();
-    }
-
     /**
-     * Adds a callable to the pipeline. The first argument is the payload (i.e.
+     * Adds callables to the pipeline. The first argument is the payload (i.e.
      * request or response object). Subsequent arguments are taken from the
      * currently matched URL parameters.
      *
@@ -242,6 +280,17 @@ class State
         return $this;
     }
 
+    /**
+     * Like `Monolyth\Reroute\Stage::pipe`, only the stages get unshifted onto
+     * the stack. Mostly used internally to add pipes from parent stages at
+     * runtime.
+     *
+     * @param callable ...$stages Callable stages to add.
+     * @return Monolyth\Reroute\State
+     * @throws InvalidArgumentException if any of the additional argument wasn't
+     *  matched by name in the URL.
+     * @see Monolyth\Reroute\Stage::pipe
+     */
     public function pipeUnshift(callable ...$stages) : State
     {
         $pipeline = $this->pipeline;
@@ -257,6 +306,7 @@ class State
      *
      * @param string $method The method to add this state for.
      * @param mixed $state The state to respond with.
+     * @return void
      */
     private function addCallback(string $method, $state) : void
     {
@@ -296,10 +346,7 @@ class State
      */
     private function isHttpAction($action) : bool
     {
-        return in_array(
-            $action,
-            ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']
-        );
+        return in_array($action, ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']);
     }
 
     /**
