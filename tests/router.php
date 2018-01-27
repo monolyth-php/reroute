@@ -9,6 +9,7 @@ return function ($test) : Generator {
     $test->beforeEach(function () use (&$router) {
         $_SERVER['HTTP_HOST'] = 'localhost';
         $_SERVER['REQUEST_METHOD'] = 'GET';
+        Router::reset();
         $router = new Router('http://localhost');
     });
 
@@ -218,6 +219,7 @@ return function ($test) : Generator {
         $_SERVER['REQUEST_URI'] = '/2/';
         $response = $router(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() === "2");
+        Router::reset();
         $_SERVER['REQUEST_URI'] = '/';
         $response = $router(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() === "1");
@@ -231,6 +233,7 @@ return function ($test) : Generator {
         $_SERVER['REQUEST_URI'] = '/2/';
         $response = $router(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() === "2");
+        Router::reset();
         $_SERVER['REQUEST_URI'] = '/';
         $response = $router(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() == "1");
@@ -244,6 +247,7 @@ return function ($test) : Generator {
         $_SERVER['REQUEST_URI'] = '/2/';
         $response = $router(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() === "2");
+        Router::reset();
         $_SERVER['REQUEST_URI'] = '/';
         $response = $router(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() === "1");
