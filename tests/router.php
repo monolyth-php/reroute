@@ -82,18 +82,9 @@ return function ($test) : Generator {
         assert($e instanceof DomainException);
     };
 
-    /** Routes can be nested using chaining */
-    yield function () use (&$router) {
-        $router->when('/foo/')
-               ->when('/bar/')->get(function () { return 'ok'; });
-        $_SERVER['REQUEST_URI'] = '/foo/bar/';
-        $response = $router(ServerRequestFactory::fromGlobals());
-        assert($response->getBody()->__toString() == 'ok');
-    };
-
     /** Routes can be nested using callbacks */
     yield function () use (&$router) {
-        $router->when('/foo/', function ($router) {
+        $router->when('/foo/', null, function ($router) {
             $router->when('/bar/')->get(function () {
                 return 'ok';
             });
@@ -149,13 +140,6 @@ return function ($test) : Generator {
         $_SERVER['REQUEST_URI'] = '/somestring/';
         $response = $router(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() == 'somestring');
-    };
-
-    /** Routers can define 'fake' routes for error handling */
-    yield function () use (&$router) {
-        $router->when(null, '404')->get('404');
-        $response = $router->get('404');
-        assert($response([], ServerRequestFactory::fromGlobals()) == '404');
     };
 
     /**
