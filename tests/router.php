@@ -95,30 +95,31 @@ return function ($test) : Generator {
     };
 
     /** Routers can have multiple domains and URLs only match the defined domain. This works for multiple routes. */
-    yield function () use (&$router) {
-        $router->when('http://foo.com/', null, function ($router) {
-            $router->when('/foo/')->get(function () {
-                return 'foo';
-            });
+    yield function () {
+        $router1 = new Router('http://foo.com');
+        $router1->when('/foo/')->get(function () {
+            return 'foo';
         });
-        $router->when('http://bar.com/', null, function ($router) {
-            $router->when('/bar/')->get(function () {
-                return 'bar';
-            });
+        $router2 = new Router('http://bar.com/');
+        $router2->when('/bar/')->get(function () {
+            return 'bar';
         });
         $_SERVER['HTTP_HOST'] = 'foo.com';
         $_SERVER['REQUEST_URI'] = '/foo/';
-        $response = $router(ServerRequestFactory::fromGlobals());
+        $response = $router1(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() == 'foo');
+        Router::reset();
         $_SERVER['REQUEST_URI'] = '/bar/';
-        $response = $router(ServerRequestFactory::fromGlobals());
+        $response = $router1(ServerRequestFactory::fromGlobals());
         assert(is_null($response));
+        Router::reset();
         $_SERVER['HTTP_HOST'] = 'bar.com';
         $_SERVER['REQUEST_URI'] = '/bar/';
-        $response = $router(ServerRequestFactory::fromGlobals());
+        $response = $router2(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() == 'bar');
+        Router::reset();
         $_SERVER['REQUEST_URI'] = '/foo/';
-        $response = $router(ServerRequestFactory::fromGlobals());
+        $response = $router2(ServerRequestFactory::fromGlobals());
         assert(is_null($response));
     };
 
