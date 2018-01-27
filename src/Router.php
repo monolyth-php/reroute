@@ -33,19 +33,13 @@ class Router implements StageInterface
     protected $routes = [];
 
     /**
-     * @var Monolyth\Reroute\State
-     * Endstate for this route.
-     */
-    protected $state;
-
-    /**
      * @var Psr\Http\Message\RequestInterface
      * Request object for the current request.
      */
     protected $request;
 
     /**
-    * @var string
+     * @var string
      * Host to use for every URL. Defaults to http://localhost
      * Note that this is fine if all URLs are on the same domain anyway, and
      * you're not passing the host name during resolve.
@@ -65,6 +59,11 @@ class Router implements StageInterface
     protected static $matchedArguments = [];
 
     /**
+     * @var array
+     */
+    protected static $pipes = [];
+
+    /**
      * Constructor. In most cases you won't need to worry about the constructor
      * arguments, but optionally you can pass a path part all routes _must_
      * match (e.g. if Reroute only needs to catch parts of your project).
@@ -74,15 +73,10 @@ class Router implements StageInterface
      * @param League\Pipeline\Pipeline $pipe Optional pipeline to chain onto.
      * @return void
      */
-    public function __construct($url, Pipeline $pipe = null)
+    public function __construct(string $url)
     {
         $this->request = ServerRequestFactory::fromGlobals();
         $this->url = $this->normalize($url);
-        $this->pipeline = new PipelineBuilder;
-        if (isset($pipe)) {
-            $this->pipeline->add($pipe);
-        }
-        self::$matchedArguments = [];
     }
 
     /**
@@ -94,7 +88,6 @@ class Router implements StageInterface
      * @return Monolyth\Reroute\Router
      * @throws InvalidArgumentException if any of the additional argument wasn't
      *  matched by name in the URL.
-     */
     public function pipe(callable ...$stages) : Router
     {
         foreach ($stages as $stage) {
@@ -128,6 +121,7 @@ class Router implements StageInterface
         }
         return $this;
     }
+     */
 
     /**
      * Setup (part of) a URL for catching. The chain is called on match and
@@ -178,19 +172,32 @@ class Router implements StageInterface
             isset($parts['host']) ? $parts['host'] : 'localhost'
         );
         $url = preg_replace("@(?<!:)/{2,}@", '/', $url);
-        if (!isset($this->routes[$url])) {
-            $this->routes[$url] = new Router($url);
-        }
         if (isset($callback)) {
+            $this->routes[$url] = new Router($url);
             $callback($this->routes[$url]);
+            $state = $this->routes[$url]->when('/', $name);
+        } else {
+            $state = $this->routes[$url] = new State($url, $name);
         }
-        $this->state = new State($name);
-        $this->pipe(new Pipe(function ($request) {
+        if (isset($name)) {
+            self::$namedStates[$name] = $state;
+        }
+        /*
+        $this->state->pipe(new Pipe(function ($request) {
             return $request instanceof ResponseInterface ?
                 $request :
                 $this->state;
         }));
-        return $this->state;
+        */
+        return $state;
+    }
+
+    public static function pipe(string $url, StageInterface $stage)
+    {
+        if (!isset(self::$pipes[$url])) {
+            self::$pipes[$url] = [];
+        }
+        self::$pipes[$url][] = $stage;
     }
 
     /**
@@ -201,7 +208,6 @@ class Router implements StageInterface
      * @param mixed $state A valid state for the matched URL.
      * @return self The current router, for chaining.
      * @see Monolyth\Reroute\Route::generate
-     */
     public function then(string $name = null, ...$args) : State
     {
         if (!isset($state)) {
@@ -224,13 +230,13 @@ class Router implements StageInterface
         }
         return $this->state;
     }
+     */
 
     /**
      * Use the defined $state if the HTTP action specifically matches `"POST"`.
      *
      * @param mixed $state A valid state to respond with.
      * @return self The current router, for chaining.
-     */
     public function post($state) : Router
     {
         if (!isset($this->state)) {
@@ -239,13 +245,13 @@ class Router implements StageInterface
         $this->state->addCallback('POST', $state);
         return $this;
     }
+     */
 
     /**
      * Use the defined $state if the HTTP action specifically matches `"PUT"`.
      *
      * @param mixed $state A valid state to respond with.
      * @return self The current router, for chaining.
-     */
     public function put($state) : Router
     {
         if (!isset($this->state)) {
@@ -254,6 +260,7 @@ class Router implements StageInterface
         $this->state->addCallback('PUT', $state);
         return $this;
     }
+     */
 
     /**
      * Use the defined $state if the HTTP action specifically matches
@@ -261,7 +268,6 @@ class Router implements StageInterface
      *
      * @param mixed $state A valid state to respond with.
      * @return self The current router, for chaining.
-     */
     public function delete($state) : Router
     {
         if (!isset($this->state)) {
@@ -270,13 +276,13 @@ class Router implements StageInterface
         $this->state->addCallback('DELETE', $state);
         return $this;
     }
+     */
 
     /**
      * Use the defined $state if the HTTP action specifically matches `"HEAD"`.
      *
      * @param mixed $state A valid state to respond with.
      * @return self The current router, for chaining.
-     */
     public function head($state) : Router
     {
         if (!isset($this->state)) {
@@ -285,6 +291,7 @@ class Router implements StageInterface
         $this->state->addCallback('HEAD', $state);
         return $this;
     }
+     */
 
     /**
      * Use the defined $state if the HTTP action specifically matches
@@ -292,7 +299,6 @@ class Router implements StageInterface
      *
      * @param mixed $state A valid state to respond with.
      * @return self The current router, for chaining.
-     */
     public function options($state) : Router
     {
         if (!isset($this->state)) {
@@ -301,6 +307,7 @@ class Router implements StageInterface
         $this->state->addCallback('OPTIONS', $state);
         return $this;
     }
+     */
 
     /**
      * A front to `__invoke` for compatibility with older League\Pipeline
@@ -337,24 +344,40 @@ class Router implements StageInterface
         unset($parts['query'], $parts['fragment']);
         $parts += parse_url($this->host);
         $url = http_build_url('', $parts);
-        $test = preg_match("@^{$this->url}$@", $url, $matches);
-        unset($matches[0]);
-        self::$matchedArguments += $matches;
-        $response = $this->pipeline->build()->process($request);
+//        $test = preg_match("@^".$this->state->getUrl()."/?$@", $url, $matches);
+//        vaR_Dump($test, $this->state->getUrl());
+//        unset($matches[0]);
+//        self::$matchedArguments += $matches;
+//        var_dump($test, $this->url, $this->state, array_keys($this->states), array_keys($this->routes));
+        //$response = $this->pipeline->build()->process($request);
+        /*
         if ($test) {
-            if ($response instanceof State) {
-                return $response(self::$matchedArguments, $request);
+          //  if ($response instanceof State) {
+            if (!isset($this->state)) {
+                die($url);
             }
+            var_dump($this->state);
+            return call_user_func($this->state, self::$matchedArguments, $request);
+            //    }
+              //  return $response(self::$matchedArguments, $request);
+            //}
         }
+        /*
         if ($response instanceof ResponseInterface) {
             return $response;
         }
+        */
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match@", $url, $matches)) {
                 unset($matches[0]);
                 self::$matchedArguments = $matches + self::$matchedArguments;
-                if (preg_match("@^$match$@", $url)) {
-                    return call_user_func($this->state, self::$matchedArguments, $request);
+                if ($router instanceof State) {
+                    foreach (self::$pipes as $match => $pipes) {
+                        if (preg_match("@^$match@", $url)) {
+                            $router->pipeUnshift(...$pipes);
+                        }
+                    }
+                    return $router(self::$matchedArguments, $request);
                 }
                 if ($res = $router($request)) {
                     return $res;
@@ -398,7 +421,7 @@ class Router implements StageInterface
             throw new DomainException("Unknown state: $name");
         }
         $state = self::$namedStates[$name];
-        $url = $state->url;
+        $url = $state->getUrl();
         // For all arguments, map the values back into the URL:
         preg_match_all(
             "@\((.*?)\)@",
