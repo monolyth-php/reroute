@@ -33,19 +33,13 @@ class Router implements StageInterface
     protected $routes = [];
 
     /**
-     * @var Monolyth\Reroute\State
-     * Endstate for this route.
-     */
-    protected $state;
-
-    /**
      * @var Psr\Http\Message\RequestInterface
      * Request object for the current request.
      */
     protected $request;
 
     /**
-    * @var string
+     * @var string
      * Host to use for every URL. Defaults to http://localhost
      * Note that this is fine if all URLs are on the same domain anyway, and
      * you're not passing the host name during resolve.
@@ -65,110 +59,65 @@ class Router implements StageInterface
     protected static $matchedArguments = [];
 
     /**
+     * @var array
+     * "Global" array storing all pipes defined by states (so we can re-add them
+     * later from a sub-state).
+     */
+    protected static $pipes = [];
+
+    /**
      * Constructor. In most cases you won't need to worry about the constructor
      * arguments, but optionally you can pass a path part all routes _must_
      * match (e.g. if Reroute only needs to catch parts of your project).
      *
      * @param string $url The path part _all_ URLs for this router must fall
      *  under in order to match.
-     * @param League\Pipeline\Pipeline $pipe Optional pipeline to chain onto.
      * @return void
      */
-    public function __construct($url = null, Pipeline $pipe = null)
+    public function __construct(string $url)
     {
         $this->request = ServerRequestFactory::fromGlobals();
         $this->url = $this->normalize($url);
-        $this->pipeline = new PipelineBuilder;
-        if (isset($pipe)) {
-            $this->pipeline->add($pipe);
-        }
-        self::$matchedArguments = [];
-    }
-
-    /**
-     * Adds a callable to the pipeline. The first argument is the payload (i.e.
-     * request or response object). Subsequent arguments are taken from the
-     * currently matched URL parameters.
-     *
-     * @param callable $stages Callable stages to add.
-     * @return Monolyth\Reroute\Router
-     * @throws InvalidArgumentException if any of the additional argument wasn't
-     *  matched by name in the URL.
-     */
-    public function pipe(callable ...$stages) : Router
-    {
-        foreach ($stages as $stage) {
-            if (!($stage instanceof StageInterface)) {
-                $stage = new Pipe(function ($payload) use ($stage) {
-                    if ($stage instanceof Closure) {
-                        $reflection = new ReflectionFunction($stage);
-                    } elseif (is_array($stage)) {
-                        $reflection = new ReflectionMethod($stage[0], $stage[1]);
-                    } else {
-                        $reflection = new ReflectionMethod($stage, '__invoke');
-                    }
-                    $parameters = $reflection->getParameters();
-                    $args = [];
-                    foreach ($parameters as $key => $param) {
-                        if (!$key) {
-                            $args[] = $payload;
-                        } elseif (isset(self::$matchedArguments[$param->name])) {
-                            $args[] = self::$matchedArguments[$param->name];
-                        } else {
-                            throw new InvalidArgumentException(
-                                "Pipe expects variable {$param->name}, but it is ".
-                                "not present in the URL being resolved."
-                            );
-                        }
-                    }
-                    return call_user_func_array($stage, $args);
-                });
-            }
-            $this->pipeline->add($stage);
-        }
-        return $this;
     }
 
     /**
      * Setup (part of) a URL for catching. The chain is called on match and
      * before control is delegated.
      *
-     * @param string|null $url The URL(part) to match for this state. If null,
-     *  something randomly invalid is used (useful for defining named states for
-     *  error pages).
-     * @param callable $callback Optional grouping callback.
-     * @return Monolyth\Reroute\Router A new sub-router.
+     * @param string $url The URL(part) to match for this state.
+     * @param string|null $name Optional name for this URL/state. Names are
+     *  useful since they allow you to change the URL without having to change
+     *  the generation anywhere (they'll "just work").
+     * @param callable|null $callback Optional grouping callback. It gets called
+     *  with a new subrouter with the `$url` as its base.
+     * @return Monolyth\Reroute\State A new state representing the endpoint.
      */
-    public function when($url, callable $callback = null) : Router
+    public function when(string $url, string $name = null, callable $callback = null) : State
     {
-        if (is_null($url)) {
-            $url = '!!!!'.rand(0, 999).microtime();
-        } else {
-            $replace = function ($match) {
-                $base = "(?'{$match[1]}'[a-zA-Z0-9-_]+";
-                if (isset($match[2]) && $match[2] == '?') {
-                    if (isset($match[3]) && $match[3] == '/') {
-                        $base .= '/';
-                    }
-                    $base .= ')?';
-                } else {
-                    $base .= ')'.$match[3];
+        $replace = function ($match) {
+            $base = "(?'{$match[1]}'[a-zA-Z0-9-_]+";
+            if (isset($match[2]) && $match[2] == '?') {
+                if (isset($match[3]) && $match[3] == '/') {
+                    $base .= '/';
                 }
-                return $base;
-            };
-            // Brace style to regex:
-            $url = preg_replace_callback(
-                '@{([a-z]\w*)}(\??)(/?)@',
-                $replace,
-                $url
-            );
-            // Angular style to regex:
-            $url = preg_replace_callback(
-                '@:([a-z]\w*)(\??)(/?)@',
-                $replace,
-                $url
-            );
-        }
+                $base .= ')?';
+            } else {
+                $base .= ')'.$match[3];
+            }
+            return $base;
+        };
+        // Brace style to regex:
+        $url = preg_replace_callback(
+            '@{([a-z]\w*)}(\??)(/?)@',
+            $replace,
+            $url
+        );
+        // Angular style to regex:
+        $url = preg_replace_callback(
+            '@:([a-z]\w*)(\??)(/?)@',
+            $replace,
+            $url
+        );
         $parts = parse_url($this->url);
         $check = parse_url($url);
         if (!isset($check['host'])) {
@@ -180,122 +129,25 @@ class Router implements StageInterface
             isset($parts['host']) ? $parts['host'] : 'localhost'
         );
         $url = preg_replace("@(?<!:)/{2,}@", '/', $url);
-        if (!isset($this->routes[$url])) {
-            $this->routes[$url] = new Router($url);
-        }
         if (isset($callback)) {
+            $this->routes[$url] = new Router($url);
             $callback($this->routes[$url]);
-        }
-        return $this->routes[$url];
-    }
-
-    /**
-     * If the current request URI ends with this URL, yield the associated
-     * state. A state can be anything but will get wrapped in a `State` object.
-     *
-     * @param string $name The (preferably) unique optional name of this state.
-     * @param mixed $state A valid state for the matched URL.
-     * @return self The current router, for chaining.
-     * @see Monolyth\Reroute\Route::generate
-     */
-    public function then($name, $state = null) : Router
-    {
-        if (!isset($state)) {
-            $state = $name;
-            $name = null;
-        }
-        $this->name = $name;
-        if (!isset($this->state)) {
-            $this->state = new State($name, $state);
-            $this->pipe(new Pipe(function ($request) {
-                return $request instanceof ResponseInterface ?
-                    $request :
-                    $this->state;
-            }));
+            $state = $this->routes[$url]->when('/', $name);
         } else {
-            $this->state->addCallback('GET', $state);
+            $state = $this->routes[$url] = new State($url, $name);
         }
         if (isset($name)) {
-            self::$namedStates[$name] = $this;
+            self::$namedStates[$name] = $state;
         }
-        return $this;
+        return $state;
     }
 
-    /**
-     * Use the defined $state if the HTTP action specifically matches `"POST"`.
-     *
-     * @param mixed $state A valid state to respond with.
-     * @return self The current router, for chaining.
-     */
-    public function post($state) : Router
+    public static function pipe(string $url, StageInterface $stage)
     {
-        if (!isset($this->state)) {
-            $this->then(null, function() {});
+        if (!isset(self::$pipes[$url])) {
+            self::$pipes[$url] = [];
         }
-        $this->state->addCallback('POST', $state);
-        return $this;
-    }
-
-    /**
-     * Use the defined $state if the HTTP action specifically matches `"PUT"`.
-     *
-     * @param mixed $state A valid state to respond with.
-     * @return self The current router, for chaining.
-     */
-    public function put($state) : Router
-    {
-        if (!isset($this->state)) {
-            $this->then(null, function() {});
-        }
-        $this->state->addCallback('PUT', $state);
-        return $this;
-    }
-
-    /**
-     * Use the defined $state if the HTTP action specifically matches
-     * `"DELETE"`.
-     *
-     * @param mixed $state A valid state to respond with.
-     * @return self The current router, for chaining.
-     */
-    public function delete($state) : Router
-    {
-        if (!isset($this->state)) {
-            $this->then(null, function() {});
-        }
-        $this->state->addCallback('DELETE', $state);
-        return $this;
-    }
-
-    /**
-     * Use the defined $state if the HTTP action specifically matches `"HEAD"`.
-     *
-     * @param mixed $state A valid state to respond with.
-     * @return self The current router, for chaining.
-     */
-    public function head($state) : Router
-    {
-        if (!isset($this->state)) {
-            $this->then(null, function() {});
-        }
-        $this->state->addCallback('HEAD', $state);
-        return $this;
-    }
-
-    /**
-     * Use the defined $state if the HTTP action specifically matches
-     * `"OPTIONS"`.
-     *
-     * @param mixed $state A valid state to respond with.
-     * @return self The current router, for chaining.
-     */
-    public function options($state) : Router
-    {
-        if (!isset($this->state)) {
-            $this->then(null, function() {});
-        }
-        $this->state->addCallback('OPTIONS', $state);
-        return $this;
+        self::$pipes[$url][] = $stage;
     }
 
     /**
@@ -304,12 +156,10 @@ class Router implements StageInterface
      *
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
      *  Defaults to the current request.
-     * @return Monolyth\Reroute\State|null If succesful, the corresponding state is
-     *  returned, otherwise null (the implementor should then show a 404 or
-     *  something else notifying the user).
+     * @return Psr\Http\Message\ResponseInterface|null
      * @see Monolyth\Reroute\Router::__invoke
      */
-    public function process($payload) :? State
+    public function process($payload) :? ResponseInterface
     {
         return $this($payload);
     }
@@ -319,11 +169,12 @@ class Router implements StageInterface
      *
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
      *  Defaults to the current request.
-     * @return mixed If succesful, the corresponding state is invoked and its
-     *  response returned, otherwise null (the implementor should then show a
-     *  404 or something else notifying the user).
+     * @return Psr\Http\Message\ResponseInterface|null If succesful, the
+     *  corresponding state is invoked and its response returned, otherwise null
+     *  (the implementor should then show a 404 or something else notifying the
+     *  user).
      */
-    public function __invoke(RequestInterface $request = null)
+    public function __invoke(RequestInterface $request = null) :? ResponseInterface
     {
         if (isset($request)) {
             $this->request = $request;
@@ -334,24 +185,19 @@ class Router implements StageInterface
         unset($parts['query'], $parts['fragment']);
         $parts += parse_url($this->host);
         $url = http_build_url('', $parts);
-        $test = preg_match("@^{$this->url}$@", $url, $matches);
-        unset($matches[0]);
-        self::$matchedArguments += $matches;
-        $response = $this->pipeline->build()->process($request);
-        if ($test) {
-            if ($response instanceof State) {
-                return $response(self::$matchedArguments, $request);
-            }
-        }
-        if ($response instanceof ResponseInterface) {
-            return $response;
-        }
         foreach ($this->routes as $match => $router) {
             if (preg_match("@^$match@", $url, $matches)) {
                 unset($matches[0]);
                 self::$matchedArguments = $matches + self::$matchedArguments;
+                if ($router instanceof State) {
+                    foreach (self::$pipes as $match => $pipes) {
+                        if (preg_match("@^$match@", $url) && $match != $router->getUrl()) {
+                            $router->pipeUnshift(...$pipes);
+                        }
+                    }
+                    return $router(self::$matchedArguments, $request);
+                }
                 if ($res = $router($request)) {
-                    self::$matchedArguments = [];
                     return $res;
                 }
             }
@@ -362,8 +208,12 @@ class Router implements StageInterface
     /**
      * Get the state object identified by $name. This can be used for further
      * processing before control is relinquished.
+     *
+     * @param string $name The name of the state to query.
+     * @return Reroute\State
+     * @throws DomainException if the state is not known.
      */
-    public function get($name)
+    public function get(string $name)
     {
         if (!isset(self::$namedStates[$name])) {
             throw new DomainException("Unknown state: $name");
@@ -383,13 +233,13 @@ class Router implements StageInterface
      * @return string A URI pointing to the requested state.
      * @throws DomainException if no state called `$name` exists.
      */
-    public function generate($name, array $arguments = [], $shortest = true)
+    public function generate(string $name, array $arguments = [], bool $shortest = true) : string
     {
         if (!isset(self::$namedStates[$name])) {
             throw new DomainException("Unknown state: $name");
         }
         $state = self::$namedStates[$name];
-        $url = $state->url;
+        $url = $state->getUrl();
         // For all arguments, map the values back into the URL:
         preg_match_all(
             "@\((.*?)\)@",
@@ -429,7 +279,7 @@ class Router implements StageInterface
      * @param string $host Optional fallback host. Defaults to `'localhost'`.
      * @return string A fully formed URI.
      */
-    protected function normalize($url, $scheme = 'http', $host = 'localhost') : string
+    protected function normalize(string $url, string $scheme = 'http', string $host = 'localhost') : string
     {
         if (preg_match("@^(https?)@", $url, $match)) {
             $scheme = $match[1];
@@ -465,6 +315,20 @@ class Router implements StageInterface
         $parts = parse_url($url);
         unset($parts['query'], $parts['fragment']);
         return http_build_url($parts);
+    }
+
+    /**
+     * Reset the "global" router. Normally, routes are resolved exactly once
+     * during a page load, but in some scenarios (testing springs to mind!) you
+     * might want to do this multiple times and avoid cruft.
+     *
+     * @return void
+     */
+    public static function reset() : void
+    {
+        self::$namedStates = [];
+        self::$matchedArguments = [];
+        self::$pipes = [];
     }
 }
 

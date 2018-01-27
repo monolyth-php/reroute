@@ -26,54 +26,57 @@ $ composer require monolyth/reroute
 
 ## Basic Usage
 
-### `when`? `then`!
-Since the Reroute router responds to HTTP requests, we use the `when` and `then`
-methods to respond:
+### Responding to requested URLs
+Since the Reroute router responds to HTTP requests, we use the `when` method to
+define a valid URL:
 
 ```php
 <?php
 
 use Monolyth\Reroute\Router;
 
-$router = new Router;
-$router->when('/some/url/')->then(function () {
-    // Return something.
-});
+$router = new Router('http://example.com');
+$state = $router->when('/some/url/', 'some-state');
 ```
 
-`when` starts matching whenever it can, so if your project lives under (for
-example) `http://my-url.com/bla/my-framework/libs` the example route above could
-match `/bla/my-framework/libs/some/url/` if nothing better was defined.
-
-> Note that Reroute matches _parts_ of URLs, hence the fact that your defined
-> route starts with `/` doesn't have any special meaning.
-
-`when` returns a new Router with the specified URL as its "base" (the first
-constructor argument). For nested routers (see below), this includes the base
-for _all_ parent routers. Schematically:
+`when` returns a new `State` as a response to the specified URL. You must then
+define the _HTTP verbs_ to which that state will respond, and with what:
 
 ```php
 <?php
 
-use Monolyth\Reroute\Router;
-
-$router = new Router;
-$foo = $router->when('/foo/');
-$bar = $foo->when('/bar/');
-$baz = $bar->when('/baz/')->then('I match /foo/bar/baz/!');
+$state->get('Hello world!');
+$state->post(new Zend\Diactoros\Response\EmptyResponse(500));
 ```
 
-What `then` returns can be really anything. If you pass a callable, that in turn
-should eventually return something non-callable. Hence, the following four forms
-are equivalent:
+The HTTP verb methods currently supported are `get`, `post`, `put`, `delete`,
+`head` and `options`. There is also the special `any` method which covers them
+all with one single reponse.
+
+A response can really be anything:
+
+1. If it is a callable, it is called (with the arguments extracted from the URL)
+   until it is no longer callable.
+2. If it is a string _and_ a class exists by that name, it is an instance of
+   that class.
+3. If the end result is _not_ an instance of
+   `Psr\Http\Message\ResponseInterface`, it is wrapped in a
+   `Zend\Diactoros\Response\HtmlResponse`.
+
+Hence, the following forms are equivalent:
 
 ```php
 <?php
 
-$router->when('/some/url/')->then(function () {
+use Zend\Diactoros\Response\HtmlResponse;
+
+$router->when('/some/url/')->get(function () {
     return 'Hello world!';
-});;
-$router->when('/some/url/')->then('Hello world!');
+});
+$router->when('/some/url/')->get('Hello world!');
+$router->when('/some/url/')->get(function () {
+    return new HtmlResponse('Hello world!');
+});
 
 class Foo
 {
@@ -88,41 +91,49 @@ class Foo
     }
 }
 
-$router->when('/some/url/')->then(new Foo);
-$router->when('/some/url/')->then(['Foo', 'getInstance']);
+$router->when('/some/url/')->get(new Foo);
+$router->when('/some/url/')->get(Foo::class);
+$router->when('/some/url/')->get(['Foo', 'getInstance']);
 ```
 
-### Named states
-When called with two parameters, the first parameter is assumed to be the
-(preferably unique) name of the state. Named states can be retrieved at any
-point by calling `get('name_of_state')` on the router:
+## Named states
+The second parameter to `when` is the (hopefully unique!) name of the state.
+This can be used later on when generating routes (see below). If no name is
+required it may be `null` (also, the default). You can also use `Router::get` to
+retrieve a particalar state by name later on (e.g. maybe your routing is
+insanely complex and split over multiple files).
 
 ```
 <?php
 
-$router->when('/the/url/')->then('myname', 'handler');
+$router->when('/the/url/', 'myname')->get('handler');
 $state = $router->get('myname'); // Ok!
-$state instanceof Reroute\State; // true
+$state instanceof Monolyth\Reroute\State; // true
 ```
 
-### Resolving a request
+## Resolving a request
 After routes are defined, somewhere in your front controller you'll want to
-actually resolve the request:
+actually resolve the request. The `ResponseInterface` object can then be
+emitted, e.g. using Zend Diactoros (which is bundled, but you could emit it any
+way you like):
 
 ```php
 <?php
 
 use Zend\Diactoros\ServerRequestFactory;
+use Zend\Diactoros\Response\SapiEmitter;
 
-if ($state = $router(ServerRequestFactory::fromGlobals())) {
-    echo $state;
+if ($response = $router(ServerRequestFactory::fromGlobals())) {
+    $emitted = new SapiEmitter;
+    $emitter->emit($response);
 } else {
     // 404!
 }
 ```
 
 (Note that you don't need to explicitly pass in a `ServerRequest` object, the
-router uses the current request by default.)
+router uses the current request by default. But if you use something else than
+Diactoros, it is possible to override this.)
 
 Invoking the router starts a [pipeline](https://github.com/thephpleague/pipeline).
 By calling the router's `pipe` method you can add middleware to the stack.
@@ -131,7 +142,7 @@ If a valid state was found for the current URL, it's return value is returned by
 the pipeline. Otherwise, it will resolve to `null`.
 
 > To emulate a different request type than the actual one, simply change
->`$_SERVER['REQUEST_METHOD']`.
+> `$_SERVER['REQUEST_METHOD']`.
 
 ## Passing parameters
 Your URLs are actually regexes, so you can match variables to pass into the
@@ -140,7 +151,7 @@ callback:
 ```php
 <?php
 
-$router->when("/(?'name'\w+)/")->then(function ($name) {
+$router->when("/(?'name'\w+)/")->get(function (string $name) {
     return "Hi there, $name!";
 });
 ```
@@ -163,20 +174,19 @@ $router->when('/{param}/');
 
 When using placeholders, note that one has less control over parameter types.
 Using regexes is more powerful since you can force e.g. `"/(?'id'\d+)/"` to
-match an integer. PHP 7 supports extended type hinting in callables, so this
-will be further improved in a future release.
+match an integer and even type-hint it in the callable.
 
 ## Inspecting the current request
 By type hinting a parameter as an instance of
 `Psr\Http\Message\RequestInterface`, you can inject the original request object
-and check the used method (or anything else of course):
+and inspect the used method (or anything else of course):
 
 ```php
 <?php
 
 use Psr\Http\Message\RequestInterface;
 
-$router->when('/some/url/')->then(function (RequestInterface $request) {
+$router->when('/some/url/')->any(function (RequestInterface $request) {
     switch ($request->getMethod()) {
         case 'POST':
             // Perform some action
@@ -188,31 +198,7 @@ $router->when('/some/url/')->then(function (RequestInterface $request) {
 });
 ```
 
-## Limiting to verbs (or extending the palet)
-The default behaviour is to match `GET` and `POST` actions only since they are
-most common in web applications. Normally a `POST` to a static page should act
-like a `GET`. However, one can specifically instruct certain URLs to respond to
-certain methods:
-
-```php
-<?php
-
-use Zend\Diactoros\Response\EmptyResponse;
-
-$router->when('/some/url/')->then('my-awesome-state', function () {
-    // Get not allowed!
-    return new EmptyResponse(403);
-})->post(function () {
-    // ...do something, POST is allowed...
-    // Since we disabled get, this should redirect somewhere valid afterwards.
-});
-```
-
-Available verb methods are `post`, `put`, `delete`, `head` and `options`.
-Subsequent calls extend the current state, and any existing actions are
-overridden on re-declaration.
-
-### Referring to other callbacks
+## Referring to other callbacks
 A parameter typehinted as `callable` matching a defined action (in uppercase)
 can be used to "chain" to another action. So the following pattern is common for
 URLs requiring special handling on e.g. a `POST`:
@@ -240,7 +226,7 @@ If the injected action is not available for this state, a 405 error is
 returned instead.
         
 ## Grouping
-The optional second argument to `when` is a callable, which expects a single
+The optional third argument to `when` is a callable, which expects a single
 parameter: a new (sub) router. All routes defined using `when` on the subrouter
 will inherit the parent router's URL:
 
@@ -248,35 +234,12 @@ will inherit the parent router's URL:
 <?php
 
 $router->when('/foo/', function ($router) {
-    $router->then('I match /foo/!');
-    $router->when('/bar/')->then('I match /foo/bar/!');
-});
-```
-
-Since `when` also returns the new subrouter, you can also use one of the
-following patterns if you prefer:
-
-```php
-<?php
-
-$router->when('/foo/')->when('/bar/')->then('I match /foo/bar/!');
-// ...or...
-$foo = $router->when('/foo/');
-$foo->when('/bar/')->then('I match /foo/bar/!');
-```
-
-For convenient chaining, `then` returns the (sub)router itself:
-```php
-<?php
-
-$router->when('/foo/')
-       ->then('I match /foo/!')
-       ->when('/bar/')
-       ->then('But I match /foo/bar/!');
+    $router->when('/bar/')->get('I match /foo/bar/!');
+})->get('I match /foo/!);
 ```
 
 ## Pipelining middleware
-Since routes are pipelined, you can at any point add one or more calls to the
+Since states are pipelined, you can at any point add one or more calls to the
 `pipe` method to add middleware:
 
 ```php
@@ -285,14 +248,11 @@ Since routes are pipelined, you can at any point add one or more calls to the
 $router->when('/restricted/')
     ->pipe(function ($payload) {
         if (!user_is_authenticated()) {
-            // In the real world, probably raise an exception you can
-            // catch elsewhere and show a login page or something...
-            return null;
+            return new RedirectResponse('/login/');
         }
         return $payload;
     })
-    ->when('/super-secret-page/')
-    ->then('For authenticated eyes only!');
+    ->get('For authenticated eyes only!');
 ```
 
 You can call `pipe` as often as you want. Subrouters won't be executed if the
@@ -305,7 +265,7 @@ parameters it also wants to use:
 <?php
 
 $router->when("/(?'foo':\d+)/")
-    ->pipe(function ($payload, $foo) {
+    ->pipe(function ($payload, int $foo) {
         if ($foo != 42) {
             // return error response or something...
         }
@@ -326,7 +286,7 @@ To generate a URL for a defined named state, use the `generate` method:
 ```php
 <?php
 
-$router->when('/:some/:params/')->then('myname', 'handler');
+$router->when('/:some/:params/', 'myname')->get('handler');
 echo $router->generate('myname', ['some' => 'foo', 'params' => 'bar']);
 // outputs: /foo/bar/
 ```
@@ -334,7 +294,9 @@ echo $router->generate('myname', ['some' => 'foo', 'params' => 'bar']);
 The optional third parameter to generate is a boolean telling `generate` if it
 should prefer a route without scheme/host if the user is already on the current
 host. It defaults to true. The above example might output
-`http://localhost/foo/bar/` if called with `false` as the third parameter.
+`http://localhost/foo/bar/` if called with `false` as the third parameter. This
+is useful if the generated routes are to be used outside your application, e.g.
+in an email sent out.
 
 Generation is only possible for named states, since anonymous ones obviously
 could only be retrieved by their actual URL (in which case you might as well
@@ -342,7 +304,7 @@ hardcode it...). Use named states if your URLs are likely to change over time!
 
 ### Cascading arguments
 When generating a route in a subrouter, all named arguments set in the parent
-router are automatigically injected into the passed arguments.
+router are automagically injected into the passed arguments.
 
 An example:
 
@@ -351,9 +313,9 @@ An example:
 
 use Zend\Diactoros\Response\RedirectResponse;
 
-$router->when("/(?'language'[a-z]{2})/", function ($router) {
-    $router->when('/')->then('home', function () { /* some page */ });
-    $router->when('/home/')->then(function () use ($router) {
+$router->when("/(?'language'[a-z]{2})/", null, function ($router) {
+    $router->when('/', 'home')->get(function () { /* some page */ });
+    $router->when('/home/')->get(function () use ($router) {
         return new RedirectResponse($router->generate('home'));
     });
 });
@@ -363,46 +325,18 @@ $router->when("/(?'language'[a-z]{2})/", function ($router) {
 ```
 
 Of course, you could also inject `string $langauge` as a parameter in the
-sub-route, but this gets tiresome and might be cumbersome if you need to
-generate a route from some view class.
+sub-route, but this gets tiresome.
 
 > Note that arguments passed in the `generate` call's second argument receive
-> precedence of previously matched ones! This means you could explicitly
+> precedence over previously matched ones. This means you could explicitly
 > redirect `/en/home/` to `/nl/` in the above example by doing:
 > `$router->generate('home', ['language' => 'nl']);`.
 
 ## Handling 404s and other errors
-```php
-<?php
-
-$router->when(null)->then('404', function() {
-    return "The URL did an oopsie!";
-});
-
-```
-
-By passing `null` as a URL, something random is generated interally that won't
-normally match anything actual in the routing table. Hence, this is a safe
-placeholder. But you could use anything, really, as long as it's not already in
-use in your application.
-
-Next, try to resolve the currently requested URI. On failure, use the 404 state
-instead:
-
-```php
-<?php
-
-if ($state = $router()) {
-    echo $state;
-} else {
-    // Note that we must "invoke" the state.
-    echo $router->get('404')();
-}
-
-```
-
-A best practice is to wrap your state resolving in a `try/catch` block, and
-handle any error accordingly so views/controllers/etc. can throw exceptions.
+The result of `$router()` will be `null` if no match was found, so that means
+you need to show a 404 error page. Beste practice is to wrap that call in a
+`try/catch` block and throw exceptions on errors. That way you can show a
+generic 500 error page in the `catch` block (and maybe do some logging).
 
 ## Routes with default arguments
 In some situations it comes in handy to be able to specify a "default argument"
@@ -438,7 +372,5 @@ $router->when('/user/{id}?/');
 ```
 
 Note that any argument found ending in a slash has this stripped, since normally
-slashes are reserved for argument separation. Also note all arguments are passed
-as strings, even if you are specifically matching e.g. an integer. For default
-parameters, these are simply passed as-is.
+slashes are reserved for argument separation.
 
