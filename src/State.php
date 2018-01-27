@@ -327,12 +327,8 @@ class State
             return $state;
         }
         return function () use ($state) {
-            if (is_string($state)) {
-                if (class_exists($state)) {
-                    $state = new $state;
-                } else {
-                    $state = new HtmlResponse($state);
-                }
+            if (is_string($state) && class_exists($state)) {
+                $state = new $state;
             }
             return $state;
         };
