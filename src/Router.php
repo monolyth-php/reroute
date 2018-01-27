@@ -191,7 +191,7 @@ class Router implements StageInterface
                 self::$matchedArguments = $matches + self::$matchedArguments;
                 if ($router instanceof State) {
                     foreach (self::$pipes as $match => $pipes) {
-                        if (preg_match("@^$match@", $url)) {
+                        if (preg_match("@^$match@", $url) && $match != $router->getUrl()) {
                             $router->pipeUnshift(...$pipes);
                         }
                     }
@@ -315,6 +315,20 @@ class Router implements StageInterface
         $parts = parse_url($url);
         unset($parts['query'], $parts['fragment']);
         return http_build_url($parts);
+    }
+
+    /**
+     * Reset the "global" router. Normally, routes are resolved exactly once
+     * during a page load, but in some scenarios (testing springs to mind!) you
+     * might want to do this multiple times and avoid cruft.
+     *
+     * @return void
+     */
+    public static function reset() : void
+    {
+        self::$namedStates = [];
+        self::$matchedArguments = [];
+        self::$pipes = [];
     }
 }
 
