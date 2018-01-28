@@ -233,9 +233,32 @@ will inherit the parent router's URL:
 ```php
 <?php
 
-$router->when('/foo/', function ($router) {
+$router->when('/foo/', null, function ($router) {
     $router->when('/bar/')->get('I match /foo/bar/!');
 })->get('I match /foo/!);
+```
+
+The result of a grouped `when` call is itself a state, which may be piped and/or
+resolved. For convenience, this state can also be defined _inside_ the callback
+using `->when('/', ...)`. So, instead of this (which is itself perfectly valid):
+
+```php
+<?php
+
+$router->when('/', 'home', function ($router) {
+    // Looooong list of subroutes under /...
+})->pipe($somePipe)->get('Home!');
+```
+
+...you may also write the (more readable):
+
+```php
+<?php
+
+$router->when('/', null, function ($router) {
+    $router->when('/', 'home')->get('Home!');
+    // Looooong list of subroutes under /...
+})->pipe($somePipe);
 ```
 
 ## Pipelining middleware
@@ -279,6 +302,13 @@ a first parameter `$payload`, and injecting the `$request` isn't possible.
 One common use of this is defining a pipe for a first `$language` parameter in
 a group of routes, and setting some environment variable to its value for all
 underlying routes.
+
+`$payload` is, by definition, an instance of
+`Psr\Http\Message\RequestInterface`. As soon as any pipe returns an instance of
+`Psr\Http\Message\ResponseInterface`, everything is halted and it is designated
+as the chosen response for this route in its current state. One common use for
+this is to redirect users if they are trying to access page A, but need to do
+something on page B first (e.g. login).
 
 ## Generating URLs
 To generate a URL for a defined named state, use the `generate` method:
