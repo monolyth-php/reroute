@@ -279,6 +279,7 @@ class Router implements StageInterface
         if ($shortest and $current = $this->currentHost()) {
             $url = preg_replace("@^$current/?@", '/', $url);
         }
+        $url = str_replace('\\', '', $url);
         return preg_replace('@(?<!:)/{2,}@', '/', $url);
     }
 
