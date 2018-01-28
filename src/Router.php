@@ -132,7 +132,10 @@ class Router implements StageInterface
         if (isset($callback)) {
             $this->routes[$url] = new Router($url);
             $callback($this->routes[$url]);
-            $state = $this->routes[$url]->when('/', $name);
+            if (!($state = $this->routes[$url]->getRootState())) {
+                $state = $this->routes[$url]->when('/', $name);
+            }
+            //else{var_dump($state->action('GET'));}
         } else {
             $state = $this->routes[$url] = new State($url, $name);
         }
@@ -140,6 +143,13 @@ class Router implements StageInterface
             self::$namedStates[$name] = $state;
         }
         return $state;
+    }
+
+    public function getRootState() :? State
+    {
+        return (isset($this->routes[$this->url]) && $this->routes[$this->url] instanceof State)
+            ? $this->routes[$this->url]
+            : null;
     }
 
     public static function pipe(string $url, StageInterface $stage)
@@ -189,13 +199,15 @@ class Router implements StageInterface
             if (preg_match("@^$match@", $url, $matches)) {
                 unset($matches[0]);
                 self::$matchedArguments = $matches + self::$matchedArguments;
-                if ($router instanceof State) {
+                if ($router instanceof State && preg_match("@^$match$@", $url)) {
                     foreach (self::$pipes as $match => $pipes) {
                         if (preg_match("@^$match@", $url) && $match != $router->getUrl()) {
                             $router->pipeUnshift(...$pipes);
                         }
                     }
                     return $router(self::$matchedArguments, $request);
+                } elseif ($router instanceof State) {
+                    continue;
                 }
                 if ($res = $router($request)) {
                     return $res;
