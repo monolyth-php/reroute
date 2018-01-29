@@ -135,7 +135,6 @@ class Router implements StageInterface
             if (!($state = $this->routes[$url]->getRootState())) {
                 $state = $this->routes[$url]->when('/', $name);
             }
-            //else{var_dump($state->action('GET'));}
         } else {
             $state = $this->routes[$url] = new State($url, $name);
         }
