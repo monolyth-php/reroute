@@ -130,7 +130,9 @@ class Router implements StageInterface
         );
         $url = preg_replace("@(?<!:)/{2,}@", '/', $url);
         if (isset($callback)) {
-            $this->routes[$url] = new Router($url);
+            if (!isset($this->routes[$url])) {
+                $this->routes[$url] = new Router($url);
+            }
             $callback($this->routes[$url]);
             if (!($state = $this->routes[$url]->getRootState())) {
                 $state = $this->routes[$url]->when('/', $name);
