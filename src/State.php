@@ -381,15 +381,14 @@ class State
         }
         $remove = [];
         $args = isset($matches) ? $matches : [];
-        while (false !== ($curr = each($args))) {
-            if (is_string($curr['key'])
-                && array_key_exists($curr['key'], $arguments)
-            ) {
-                $arguments[$curr['key']] = $curr['value'];
-                $remove[] = $curr['key'];
-                $next = each($args);
-                $remove[] = $next['key'];
+        $i = 1;
+        foreach ($args as $key => $value) {
+            if (is_string($key) && array_key_exists($key, $arguments)) {
+                $arguments[$key] = $value;
+                $remove[] = $key;
+                $remove[] = $i;
             }
+            ++$i;
         }
         foreach ($remove as $key) {
             unset($args[$key]);
