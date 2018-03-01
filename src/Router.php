@@ -165,6 +165,7 @@ class Router implements StageInterface
      *
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
      *  Defaults to the current request.
+     * @param array $pipeline Optional array of pipes. Mostly for internal use.
      * @return Psr\Http\Message\ResponseInterface|null If succesful, the
      *  corresponding state is invoked and its response returned, otherwise null
      *  (the implementor should then show a 404 or something else notifying the
