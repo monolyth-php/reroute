@@ -275,9 +275,18 @@ class State
                 });
             }
             $this->pipeline[] = $stage;
-            Router::pipe($this->url, $stage);
         }
         return $this;
+    }
+
+    /**
+     * Return the current array of pipelines.
+     *
+     * @return array
+     */
+    public function getPipeline()
+    {
+        return $this->pipeline;
     }
 
     /**
