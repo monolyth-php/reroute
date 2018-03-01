@@ -59,13 +59,6 @@ class Router implements StageInterface
     protected static $matchedArguments = [];
 
     /**
-     * @var array
-     * "Global" array storing all pipes defined by states (so we can re-add them
-     * later from a sub-state).
-     */
-    protected static $pipes = [];
-
-    /**
      * Constructor. In most cases you won't need to worry about the constructor
      * arguments, but optionally you can pass a path part all routes _must_
      * match (e.g. if Reroute only needs to catch parts of your project).
@@ -153,14 +146,6 @@ class Router implements StageInterface
             : null;
     }
 
-    public static function pipe(string $url, StageInterface $stage)
-    {
-        if (!isset(self::$pipes[$url])) {
-            self::$pipes[$url] = [];
-        }
-        self::$pipes[$url][] = $stage;
-    }
-
     /**
      * A front to `__invoke` for compatibility with older League\Pipeline
      * versions.
@@ -185,7 +170,7 @@ class Router implements StageInterface
      *  (the implementor should then show a 404 or something else notifying the
      *  user).
      */
-    public function __invoke(RequestInterface $request = null) :? ResponseInterface
+    public function __invoke(RequestInterface $request = null, array $pipeline = []) :? ResponseInterface
     {
         if (isset($request)) {
             $this->request = $request;
@@ -201,16 +186,12 @@ class Router implements StageInterface
                 unset($matches[0]);
                 self::$matchedArguments = $matches + self::$matchedArguments;
                 if ($router instanceof State && preg_match("@^$match$@", $url)) {
-                    foreach (self::$pipes as $match => $pipes) {
-                        if (preg_match("@^$match@", $url) && $match != $router->getUrl()) {
-                            $router->pipeUnshift(...$pipes);
-                        }
-                    }
+                    $router->pipeUnshift(...$pipeline);
                     return $router(self::$matchedArguments, $request);
                 } elseif ($router instanceof State) {
                     continue;
                 }
-                if ($res = $router($request)) {
+                if ($res = $router($request, $router->getRootState()->getPipeline())) {
                     return $res;
                 }
             }
@@ -342,7 +323,6 @@ class Router implements StageInterface
     {
         self::$namedStates = [];
         self::$matchedArguments = [];
-        self::$pipes = [];
     }
 }
 
