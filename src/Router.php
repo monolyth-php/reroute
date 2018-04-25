@@ -155,9 +155,9 @@ class Router implements StageInterface
      * @return Psr\Http\Message\ResponseInterface|null
      * @see Monolyth\Reroute\Router::__invoke
      */
-    public function process($payload) :? ResponseInterface
+    public function process(RequestInterface $request = null) :? ResponseInterface
     {
-        return $this($payload);
+        return $this($request);
     }
 
     /**
