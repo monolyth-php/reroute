@@ -214,7 +214,7 @@ class Router implements StageInterface
         if (!isset(self::$namedStates[$name])) {
             throw new DomainException("Unknown state: $name");
         }
-        return self::$namedStates[$name]->state;
+        return self::$namedStates[$name];
     }
 
     /**
