@@ -193,7 +193,7 @@ class Router implements StageInterface
                     continue;
                 }
                 $rootState = $router->getRootState();
-                if ($res = $router($request, $rootState ? $rootState->getPipeline() : [])) {
+                if ($res = $router($request, array_merge($pipeline, $rootState ? $rootState->getPipeline() : []))) {
                     return $res;
                 }
             }
