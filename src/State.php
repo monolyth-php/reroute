@@ -91,11 +91,7 @@ class State
         $call = $this->actions[$method];
         $this->request = $request;
         do {
-            try {
             $args = $this->parseArguments($call, $arguments);
-            } catch (\TypeError $e) {
-                var_Dump($call);
-            }
             foreach ($args as &$value) {
                 if (is_string($value)
                     && $this->isHttpAction(substr($value, 1))
@@ -396,8 +392,8 @@ class State
                 $arguments[$key] = $value;
                 $remove[] = $key;
                 $remove[] = $i;
+                ++$i;
             }
-            ++$i;
         }
         foreach ($remove as $key) {
             unset($args[$key]);
