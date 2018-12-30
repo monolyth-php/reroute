@@ -386,13 +386,16 @@ class State
         }
         $remove = [];
         $args = isset($matches) ? $matches : [];
-        $i = 1;
+        $justMatched = false;
         foreach ($args as $key => $value) {
+            if (is_numeric($key) && $justMatched) {
+                $remove[] = $key;
+            }
+            $justMatched = false;
             if (is_string($key) && array_key_exists($key, $arguments)) {
                 $arguments[$key] = $value;
                 $remove[] = $key;
-                $remove[] = $i;
-                ++$i;
+                $justMatched = true;
             }
         }
         foreach ($remove as $key) {
