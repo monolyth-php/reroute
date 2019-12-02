@@ -178,9 +178,9 @@ return function ($test) : Generator {
             })
             ->get(new HtmlResponse('ok'));
         $_SERVER['REQUEST_URI'] = '/1/2/';
-        $router(ServerRequestFactory::fromGlobals());
         echo $router(ServerRequestFactory::fromGlobals())->getBody();
-        assert(ob_get_clean() == '12ok');
+        $result = ob_get_clean();
+        assert($result === '12ok');
     };
 
     /** We can override the action on a state and inject another action */
@@ -195,7 +195,6 @@ return function ($test) : Generator {
             });
         $_SERVER['REQUEST_URI'] = '/foo/bar/';
         $_SERVER['REQUEST_METHOD'] = 'POST';
-        $router(ServerRequestFactory::fromGlobals());
         echo $router(ServerRequestFactory::fromGlobals())->getBody();
         assert(ob_get_clean() == 'barfoobar');
     };
