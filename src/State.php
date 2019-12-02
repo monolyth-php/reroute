@@ -8,8 +8,6 @@ use ReflectionFunction;
 use InvalidArgumentException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use Zend\Diactoros\Response\HtmlResponse;
-use Zend\Diactoros\Response\EmptyResponse;
 use League\Pipeline\PipelineBuilder;
 use League\Pipeline\Pipeline;
 
@@ -72,12 +70,17 @@ class State
      * @param array $arguments All matched URL parameters.
      * @param Psr\Http\Message\RequestInterface $request The current request.
      * @return Psr\Http\Message\ReponseInterface
+     * @throws Monolyth\Reroute\ResolvedStateMustImplementResponseInterfaceException
+     *  if the the resolved state does not implement
+     *  Psr\Http\Message\ResponseInterface.
+     * @throws Monolyth\Reroute\State\MethodNotSupportedException if the
+     *  requested HTTP method is not supported by the state.
      */
     public function __invoke(array $arguments, RequestInterface $request) : ResponseInterface
     {
         $method = $request->getMethod();
         if (!isset($this->actions[$method])) {
-            return new EmptyResponse(405);
+            throw new MethodNotSupportedException($method);
         }
         self::$arguments = $arguments;
         $pipeline = new PipelineBuilder;
@@ -103,14 +106,14 @@ class State
                     if (isset($this->actions[$key])) {
                         $value = $this->actions[$key];
                     } else {
-                        $value = new EmptyResponse(405);
+                        throw new MethodNotSupportedException($key);
                     }
                 }
             }
             $call = call_user_func_array($call, $args);
         } while (is_callable($call));
         if (!($call instanceof ResponseInterface)) {
-            $call = new HtmlResponse($call);
+            throw new ResolvedStateMustImplementResponseInterfaceException;
         }
         return $call;
     }
@@ -377,9 +380,11 @@ class State
             ) {
                 $arguments[$value->name] = $this->request;
             } elseif ($value->isCallable()) {
-                $arguments[$value->name] = isset($this->actions[$value->name]) ?
-                    $this->actions[$value->name] :
-                    new EmptyResponse(405);
+                if (isset($this->actions[$value->name])) {
+                    $arguments[$value->name] = $this->actions[$value->name];
+                } else {
+                    throw new MethodNotSupportedException($value->name);
+                }
             } else {
                 $arguments[$value->name] = null;
             }
