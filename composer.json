@@ -27,6 +27,8 @@
         }
     },
     "require-dev": {
-        "toast/unit": "^1.3"
+        "toast/unit": "^1.3",
+        "gentry/gentry": "^0.13.12",
+        "gentry/toast": "^0.1.1"
     }
 }
