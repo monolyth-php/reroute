@@ -1,7 +1,1 @@
-
-*.sw*
-
-composer.lock
-
 vendor
-site
