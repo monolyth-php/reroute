@@ -72,9 +72,8 @@ class Router implements StageInterface
      *  under in order to match.
      * @return void
      */
-    public function __construct(string $url, RequestInterface $request)
+    public function __construct(string $url)
     {
-        $this->request = $request;
         $this->url = $this->normalize($url);
     }
 
@@ -174,18 +173,15 @@ class Router implements StageInterface
      * Attempt to resolve a Monolyth\Reroute\State associated with a request.
      *
      * @param Psr\Http\Message\RequestInterface $request The request to handle.
-     *  Defaults to the current request.
      * @param array $pipeline Optional array of pipes. Mostly for internal use.
      * @return Psr\Http\Message\ResponseInterface|null If succesful, the
      *  corresponding state is invoked and its response returned, otherwise null
      *  (the implementor should then show a 404 or something else notifying the
      *  user).
      */
-    public function __invoke(RequestInterface $request = null, array $pipeline = []) :? ResponseInterface
+    public function __invoke(RequestInterface $request, array $pipeline = []) :? ResponseInterface
     {
-        if (isset($request)) {
-            $this->request = $request;
-        }
+        $this->request = $request;
         $url = $this->request->getUri().'';
         $url = $this->normalize($url);
         $parts = parse_url($url);
