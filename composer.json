@@ -12,7 +12,8 @@
     "require": {
         "php": ">=7.1",
         "jakeasmith/http_build_url": "^1.0.0",
-        "league/pipeline": "^0.1.0"
+        "league/pipeline": "^0.1.0",
+        "psr/http-message": "^1.0"
     },
     "autoload": {
         "psr-4": {
