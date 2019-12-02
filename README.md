@@ -39,13 +39,14 @@ $router = new Router('http://example.com');
 $state = $router->when('/some/url/', 'some-state');
 ```
 
-`when` returns a new `State` as a response to the specified URL. You must then
-define the _HTTP verbs_ to which that state will respond, and with what:
+`when` returns a new `State` as a response to the specified URL, optionally
+identified by the given name. You must then define the _HTTP verbs_ to which
+that state will respond, and with what:
 
 ```php
 <?php
 
-$state->get('Hello world!');
+$state->get(new Zend\Diactoros\Response\HtmlResponse('Hello world!'));
 $state->post(new Zend\Diactoros\Response\EmptyResponse(500));
 ```
 
@@ -53,15 +54,17 @@ The HTTP verb methods currently supported are `get`, `post`, `put`, `delete`,
 `head` and `options`. There is also the special `any` method which covers them
 all with one single reponse.
 
-A response can really be anything:
+A response must, eventually, be an instance of
+`Psr\Http\Message\ResponseInterface`. However, for convenience there are also
+other things you might define as a response:
 
 1. If it is a callable, it is called (with the arguments extracted from the URL)
    until it is no longer callable.
 2. If it is a string _and_ a class exists by that name, it is an instance of
    that class.
-3. If the end result is _not_ an instance of
-   `Psr\Http\Message\ResponseInterface`, it is wrapped in a
-   `Zend\Diactoros\Response\HtmlResponse`.
+3. If the class is callable it is invoked and the result is used.
+4. Otherwise the class itself must implement
+   `Psr\Http\Message\ResponseInterface`.
 
 Hence, the following forms are equivalent:
 
@@ -71,12 +74,9 @@ Hence, the following forms are equivalent:
 use Zend\Diactoros\Response\HtmlResponse;
 
 $router->when('/some/url/')->get(function () {
-    return 'Hello world!';
+    return new HtmlsReponse('Hello world!');
 });
-$router->when('/some/url/')->get('Hello world!');
-$router->when('/some/url/')->get(function () {
-    return new HtmlResponse('Hello world!');
-});
+$router->when('/some/url/')->get(new HtmlResponse('Hello world!'));
 
 class Foo
 {
@@ -87,7 +87,7 @@ class Foo
 
     public function __invoke()
     {
-        return 'Hello world!';
+        return new HtmlResponse('Hello world!');
     }
 }
 
@@ -114,8 +114,7 @@ $state instanceof Monolyth\Reroute\State; // true
 ## Resolving a request
 After routes are defined, somewhere in your front controller you'll want to
 actually resolve the request. The `ResponseInterface` object can then be
-emitted, e.g. using Zend Diactoros (which is bundled, but you could emit it any
-way you like):
+emitted, e.g. using Zend Diactoros:
 
 ```php
 <?php
@@ -131,14 +130,15 @@ if ($response = $router(ServerRequestFactory::fromGlobals())) {
 }
 ```
 
-(Note that you don't need to explicitly pass in a `ServerRequest` object, the
-router uses the current request by default. But if you use something else than
-Diactoros, it is possible to override this.)
+Routers must be invoked with the current request as argument. Note that prior to
+invocation, it will not be possible to generate routes. If this is something you
+need to do (e.g. in CRON jobs to send out emails) you may invoke the router
+manually. 
 
 Invoking the router starts a [pipeline](https://github.com/thephpleague/pipeline).
 By calling the router's `pipe` method you can add middleware to the stack.
 
-If a valid state was found for the current URL, it's return value is returned by
+If a valid state was found for the current URL, its return value is returned by
 the pipeline. Otherwise, it will resolve to `null`.
 
 > To emulate a different request type than the actual one, simply change
@@ -185,15 +185,16 @@ and inspect the used method (or anything else of course):
 <?php
 
 use Psr\Http\Message\RequestInterface;
+use Zend\Diactoros\Response\HtmlResponse;
 
 $router->when('/some/url/')->any(function (RequestInterface $request) {
     switch ($request->getMethod()) {
         case 'POST':
             // Perform some action
         case 'GET':
-            return 'ok';
+            return new HtmlResponse('ok');
         default:
-            return $request->getMethod()." method not allowed.";
+            return new HtmlResponse($request->getMethod()." method not allowed.", 405);
     }
 });
 ```
@@ -275,7 +276,7 @@ $router->when('/restricted/')
         }
         return $payload;
     })
-    ->get('For authenticated eyes only!');
+    ->get(new Zend\Diactoros\Response\HtmlResponse('For authenticated eyes only!'));
 ```
 
 You can call `pipe` as often as you want. Subrouters won't be executed if the
