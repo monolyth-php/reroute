@@ -15,7 +15,7 @@ return function ($test) : Generator {
 
     /**We can resolve a route and it returns the desired state */
     yield function () use (&$router) {
-        $router->when('/', 'foo')->get('Hello world!');
+        $router->when('/', 'foo')->get(new HtmlResponse('Hello world!'));
         $_SERVER['REQUEST_URI'] = '/';
         $response = $router(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() == 'Hello world!');
@@ -24,7 +24,7 @@ return function ($test) : Generator {
     /** When passing unnamed parameters, they get injected */
     yield function () use (&$router) {
         $router->when("/(\d+)/")->get(function ($id) {
-            return $id;
+            return new HtmlResponse($id);
         });
         $_SERVER['REQUEST_URI'] = '/1/';
         $response = $router(ServerRequestFactory::fromGlobals());
@@ -34,7 +34,7 @@ return function ($test) : Generator {
     /** When passing named parameters, they get injected */
     yield function () use (&$router) {
         $router->when("/(?'id'\d+)/")->get(function ($id) {
-            return $id;
+            return new HtmlResponse($id);
         });
         $_SERVER['REQUEST_URI'] = '/1/';
         $response = $router(ServerRequestFactory::fromGlobals());
@@ -45,7 +45,7 @@ return function ($test) : Generator {
     yield function () use (&$router) {
         $router->when("/(?'first'\w+)/(?'last'\w+)/")
                ->get(function ($last, $first) {
-                    return "$first $last";
+                    return new HtmlResponse("$first $last");
                });
         $_SERVER['REQUEST_URI'] = '/john/doe/';
         $response = $router(ServerRequestFactory::fromGlobals());
@@ -57,7 +57,7 @@ return function ($test) : Generator {
         $router->when("/(?'foo'\w+)/(\w+)/")
                ->get(function ($bar, RequestInterface $request, $foo) {
                     $VERB = $request->getMethod();
-                    return "$bar $VERB $foo";
+                    return new HtmlREsponse("$bar $VERB $foo");
                });
         $_SERVER['REQUEST_URI'] = '/foo/bar/';
         $response = $router(ServerRequestFactory::fromGlobals());
@@ -66,7 +66,7 @@ return function ($test) : Generator {
 
     /** When matching any query parameters should be ignored */
     yield function () use (&$router) {
-        $router->when('/')->get(function () { return 'ok'; });
+        $router->when('/')->get(function () { return new HtmlResponse('ok'); });
         $_SERVER['REQUEST_URI'] = '/?foo=bar';
         $response = $router(ServerRequestFactory::fromGlobals());
         assert($response->getBody()->__toString() == 'ok');
@@ -86,7 +86,7 @@ return function ($test) : Generator {
     yield function () use (&$router) {
         $router->when('/foo/', null, function ($router) {
             $router->when('/bar/')->get(function () {
-                return 'ok';
+                return new HtmlResponse('ok');
             });
         });
         $_SERVER['REQUEST_URI'] = '/foo/bar/';
@@ -98,11 +98,11 @@ return function ($test) : Generator {
     yield function () {
         $router1 = new Router('http://foo.com');
         $router1->when('/foo/')->get(function () {
-            return 'foo';
+            return new HtmlResponse('foo');
         });
         $router2 = new Router('http://bar.com/');
         $router2->when('/bar/')->get(function () {
-            return 'bar';
+            return new HtmlResponse('bar');
         });
         $_SERVER['HTTP_HOST'] = 'foo.com';
         $_SERVER['REQUEST_URI'] = '/foo/';
@@ -126,7 +126,7 @@ return function ($test) : Generator {
     /** Routes can use Angular-style parameters */
     yield function () use (&$router) {
         $router->when('/:angular/')->get(function ($angular) {
-            return $angular;
+            return new HtmlResponse($angular);
         });
         $_SERVER['REQUEST_URI'] = '/somestring/';
         $response = $router(ServerRequestFactory::fromGlobals());
@@ -136,7 +136,7 @@ return function ($test) : Generator {
     /** Routes can use braces-style parameters (e.g. Symfony) */
     yield function () use (&$router) {
         $router->when('/{braces}/')->get(function ($braces) {
-            return $braces;
+            return new HtmlResponse($braces);
         });
         $_SERVER['REQUEST_URI'] = '/somestring/';
         $response = $router(ServerRequestFactory::fromGlobals());
@@ -150,6 +150,7 @@ return function ($test) : Generator {
     yield function () use (&$router) {
         $router->when("http://foo.com/(?'p1':\w+)/{p2}/:p3/", 'test')
                ->get(function () {});
+        $router(ServerRequestFactory::fromGlobals());
         $url = $router->generate(
             'test',
             ['p1' => 'foo', 'p2' => 'bar', 'p3' => 'baz']
@@ -157,6 +158,7 @@ return function ($test) : Generator {
         assert($url == 'http://foo.com/foo/bar/baz/');
         $_SERVER['HTTP_HOST'] = 'foo.com';
         $router = new Router('http://foo.com');
+        $router(ServerRequestFactory::fromGlobals());
         $router->when("/(?'p1':\w+)/{p2}/:p3/", 'test')->get(function () {});
         $url = $router->generate(
             'test',
@@ -174,8 +176,9 @@ return function ($test) : Generator {
                 echo $bar;
                 return $request;
             })
-            ->get('ok');
+            ->get(new HtmlResponse('ok'));
         $_SERVER['REQUEST_URI'] = '/1/2/';
+        $router(ServerRequestFactory::fromGlobals());
         echo $router(ServerRequestFactory::fromGlobals())->getBody();
         assert(ob_get_clean() == '12ok');
     };
@@ -185,13 +188,14 @@ return function ($test) : Generator {
         ob_start();
         $router->when('/{foo}/{bar}/')
             ->get(function ($foo, $bar) {
-                return $foo.$bar;
+                return new HtmlResponse($foo.$bar);
             })->post(function ($bar, callable $GET) {
                 echo $bar;
                 return $GET;
             });
         $_SERVER['REQUEST_URI'] = '/foo/bar/';
         $_SERVER['REQUEST_METHOD'] = 'POST';
+        $router(ServerRequestFactory::fromGlobals());
         echo $router(ServerRequestFactory::fromGlobals())->getBody();
         assert(ob_get_clean() == 'barfoobar');
     };
@@ -199,7 +203,7 @@ return function ($test) : Generator {
     /** When matching a state with a default argument (regex-style), it matches either with or without that argument being passed */
     yield function () use (&$router) {
         $router->when("/(?'id'\d+/)?")->get(function ($id = "1") {
-            return $id;
+            return new HtmlResponse($id);
         });
         $_SERVER['REQUEST_URI'] = '/2/';
         $response = $router(ServerRequestFactory::fromGlobals());
@@ -213,7 +217,7 @@ return function ($test) : Generator {
     /** When matching a state with a default argument (Angular-style), it matches either with or without that argument being passed */
     yield function () use (&$router) {
         $router->when("/:id?/")->get(function ($id = "1") {
-            return $id;
+            return new HtmlResponse($id);
         });
         $_SERVER['REQUEST_URI'] = '/2/';
         $response = $router(ServerRequestFactory::fromGlobals());
@@ -227,7 +231,7 @@ return function ($test) : Generator {
     /** When matching a state with a default argument (braces-style), it matches either with or without that argument being passed */
     yield function () use (&$router) {
         $router->when("/{id}?/")->get(function ($id = "1") {
-            return $id;
+            return new HtmlResponse($id);
         });
         $_SERVER['REQUEST_URI'] = '/2/';
         $response = $router(ServerRequestFactory::fromGlobals());
