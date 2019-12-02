@@ -8,7 +8,6 @@ use ReflectionFunction;
 use ReflectionMethod;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-use Zend\Diactoros\ServerRequestFactory;
 use League\Pipeline\PipelineBuilder;
 use League\Pipeline\Pipeline;
 use League\Pipeline\StageInterface;
@@ -22,24 +21,28 @@ class Router implements StageInterface
 {
     /**
      * @var array
+     *
      * "Global" storing all named states, for reference.
      */
     protected static $namedStates = [];
 
     /**
      * @var array
+     *
      * Array storing defined routes.
      */
     protected $routes = [];
 
     /**
      * @var Psr\Http\Message\RequestInterface
+     *
      * Request object for the current request.
      */
     protected $request;
 
     /**
      * @var string
+     *
      * Host to use for every URL. Defaults to http://localhost
      * Note that this is fine if all URLs are on the same domain anyway, and
      * you're not passing the host name during resolve.
@@ -48,12 +51,14 @@ class Router implements StageInterface
 
     /**
      * @var string
+     *
      * Name of the current endstate.
      */
     protected $name = null;
 
     /**
      * @var array
+     *
      * Hash of matched arguments for the resolved route.
      */
     protected static $matchedArguments = [];
@@ -67,9 +72,9 @@ class Router implements StageInterface
      *  under in order to match.
      * @return void
      */
-    public function __construct(string $url)
+    public function __construct(string $url, RequestInterface $request)
     {
-        $this->request = ServerRequestFactory::fromGlobals();
+        $this->request = $request;
         $this->url = $this->normalize($url);
     }
 
@@ -139,6 +144,11 @@ class Router implements StageInterface
         return $state;
     }
 
+    /**
+     * Get the root state associated with this route.
+     *
+     * @return Monolyth\Reroute\State|null
+     */
     public function getRootState() :? State
     {
         return (isset($this->routes[$this->url]) && $this->routes[$this->url] instanceof State)
@@ -206,10 +216,10 @@ class Router implements StageInterface
      * processing before control is relinquished.
      *
      * @param string $name The name of the state to query.
-     * @return Reroute\State
+     * @return Monolyth\Reroute\State
      * @throws DomainException if the state is not known.
      */
-    public function get(string $name)
+    public function get(string $name) : State
     {
         if (!isset(self::$namedStates[$name])) {
             throw new DomainException("Unknown state: $name");
