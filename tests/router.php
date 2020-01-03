@@ -1,8 +1,8 @@
 <?php
 
 use Monolyth\Reroute\Router;
-use Zend\Diactoros\ServerRequestFactory;
-use Zend\Diactoros\Response\HtmlResponse;
+use Laminas\Diactoros\ServerRequestFactory;
+use Laminas\Diactoros\Response\HtmlResponse;
 use Psr\Http\Message\RequestInterface;
 
 return function ($test) : Generator {
