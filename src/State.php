@@ -96,9 +96,7 @@ class State
         do {
             $args = $this->parseArguments($call, $arguments);
             foreach ($args as &$value) {
-                if (is_string($value)
-                    && $this->isHttpAction(substr($value, 1))
-                ) {
+                if (is_string($value) && $this->isHttpAction(substr($value, 1))) {
                     $key = substr($value, 1);
                     if ($key == $method) {
                         throw new EndlessStateLoopException;
