@@ -274,27 +274,6 @@ class Router implements StageInterface
     }
 
     /**
-     * Internal helper method to "normalize" the current URI (e.g. make sure
-     * it has a scheme and a host).
-     *
-     * @param string $url The URL to normalize.
-     * @param string $scheme Optional fallback scheme. Defaults to `'http'`.
-     * @param string $host Optional fallback host. Defaults to `'localhost'`.
-     * @return string A fully formed URI.
-     */
-    protected function normalize(string $url, string $scheme = 'http', string $host = 'localhost') : string
-    {
-        if (preg_match("@^(https?)@", $url, $match)) {
-            $scheme = $match[1];
-        }
-        if (preg_match("@^$scheme://(.*?)(/|$)@", $url, $match)) {
-            $host = $match[1];
-        }
-        $url = preg_replace("@^$scheme://.*?(/|$)@", '$1', $url);
-        return "$scheme://$host$url";
-    }
-
-    /**
      * Returns the current host (e.g. `'http://localhost/'`).
      *
      * @return string The current host.
@@ -331,6 +310,27 @@ class Router implements StageInterface
     {
         self::$namedStates = [];
         self::$matchedArguments = [];
+    }
+
+    /**
+     * Internal helper method to "normalize" the current URI (e.g. make sure
+     * it has a scheme and a host).
+     *
+     * @param string $url The URL to normalize.
+     * @param string $scheme Optional fallback scheme. Defaults to `'http'`.
+     * @param string $host Optional fallback host. Defaults to `'localhost'`.
+     * @return string A fully formed URI.
+     */
+    protected function normalize(string $url, string $scheme = 'http', string $host = 'localhost') : string
+    {
+        if (preg_match("@^(https?)@", $url, $match)) {
+            $scheme = $match[1];
+        }
+        if (preg_match("@^$scheme://(.*?)(/|$)@", $url, $match)) {
+            $host = $match[1];
+        }
+        $url = preg_replace("@^$scheme://.*?(/|$)@", '$1', $url);
+        return "$scheme://$host$url";
     }
 }
 
