@@ -5,8 +5,8 @@ use Laminas\Diactoros\ServerRequestFactory;
 use Laminas\Diactoros\Response\HtmlResponse;
 use Psr\Http\Message\RequestInterface;
 
-return function ($test) : Generator {
-    $test->beforeEach(function () use (&$router) {
+return function () : Generator {
+    $this->beforeEach(function () use (&$router) {
         $_SERVER['HTTP_HOST'] = 'localhost';
         $_SERVER['REQUEST_METHOD'] = 'GET';
         Router::reset();
