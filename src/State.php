@@ -137,9 +137,7 @@ class State
      */
     public function action($method = 'GET')
     {
-        return isset($this->actions[$method]) ?
-            $this->actions[$method] :
-            null;
+        return $this->actions[$method] ?? null;
     }
 
     /**
