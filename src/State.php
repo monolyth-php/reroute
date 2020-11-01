@@ -135,7 +135,7 @@ class State
      * @return mixed The found action on success, or null if no such verb was
      *  defined.
      */
-    public function action($method = 'GET')
+    public function action(string $method = 'GET')
     {
         return $this->actions[$method] ?? null;
     }
