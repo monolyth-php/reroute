@@ -10,6 +10,7 @@ use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use League\Pipeline\PipelineBuilder;
 use League\Pipeline\Pipeline;
+use Laminas\Diactoros\Response\EmptyResponse;
 
 /**
  * The State class. This is a wrapper representing a state belonging to a
@@ -75,10 +76,15 @@ class State
      *  Psr\Http\Message\ResponseInterface.
      * @throws Monolyth\Reroute\State\MethodNotSupportedException if the
      *  requested HTTP method is not supported by the state.
+     * @throws Monolyth\Reroute\EndlessStateLoopException if the given state
+     *  returns itself.
      */
     public function __invoke(array $arguments, RequestInterface $request) : ResponseInterface
     {
         $method = $request->getMethod();
+        if ($method == 'HEAD') {
+            $method = 'GET';
+        }
         if (!isset($this->actions[$method])) {
             throw new MethodNotSupportedException($method);
         }
@@ -112,6 +118,11 @@ class State
         } while (is_callable($call));
         if (!($call instanceof ResponseInterface)) {
             throw new ResolvedStateMustImplementResponseInterfaceException;
+        }
+        if ($request->getMethod() == 'HEAD') {
+            $body = $call->getBody()->getContents();
+            $headers = $call->getHeaders();
+            return new EmptyResponse(200, $headers + ['Content-Length' => strlen($body)]);
         }
         return $call;
     }
@@ -148,7 +159,7 @@ class State
      */
     public function any($state) : State
     {
-        foreach (['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS'] as $verb) {
+        foreach (['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] as $verb) {
             $this->addCallback($verb, $state);
         }
         return $this;
@@ -203,18 +214,6 @@ class State
     public function delete($state) : State
     {
         $this->addCallback('DELETE', $state);
-        return $this;
-    }
-
-    /**
-     * Add a response for the HEAD verb.
-     *
-     * @param mixed $state
-     * @return Monolyth\Reroute\State
-     */
-    public function head($state) : State
-    {
-        $this->addCallback('HEAD', $state);
         return $this;
     }
 
@@ -305,7 +304,7 @@ class State
     }
 
     /**
-     * Add a state callback for an method. If the state is something
+     * Add a state callback for a method. If the state is something
      * non-callable it is auto-wrapped in a Closure.
      *
      * @param string $method The method to add this state for.
