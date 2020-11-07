@@ -74,8 +74,8 @@ class State
      * @throws Monolyth\Reroute\ResolvedStateMustImplementResponseInterfaceException
      *  if the the resolved state does not implement
      *  Psr\Http\Message\ResponseInterface.
-     * @throws Monolyth\Reroute\State\MethodNotSupportedException if the
-     *  requested HTTP method is not supported by the state.
+     * @throws Monolyth\Reroute\MethodNotSupportedException if the requested
+     *  action tries to inject an unsupported HTTP method.
      * @throws Monolyth\Reroute\EndlessStateLoopException if the given state
      *  returns itself.
      */
@@ -86,7 +86,8 @@ class State
             $method = 'GET';
         }
         if (!isset($this->actions[$method])) {
-            throw new MethodNotSupportedException($method);
+            $allowed = implode(', ', array_keys($this->actions));
+            return new EmptyResponse(405, ['Allow' => $allowed]);
         }
         self::$arguments = $arguments;
         $pipeline = new PipelineBuilder;
