@@ -5,6 +5,7 @@ use Laminas\Diactoros\ServerRequestFactory;
 use Laminas\Diactoros\Response\HtmlResponse;
 use Psr\Http\Message\RequestInterface;
 
+/** Tests for the router */
 return function () : Generator {
     $this->beforeEach(function () use (&$router) {
         $_SERVER['HTTP_HOST'] = 'localhost';
@@ -13,7 +14,7 @@ return function () : Generator {
         $router = new Router('http://localhost');
     });
 
-    /**We can resolve a route and it returns the desired state */
+    /** We can resolve a route and it returns the desired state */
     yield function () use (&$router) {
         $router->when('/', 'foo')->get(new HtmlResponse('Hello world!'));
         $_SERVER['REQUEST_URI'] = '/';
