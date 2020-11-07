@@ -357,6 +357,8 @@ class State
      * @param array $matches Array of matched parameters from the current
      *  request URI.
      * @return array An array of parameters $call can be called with.
+     * @throws Monolyth\Reroute\MethodNotSupportedException if an argument
+     *  refers to a HTTP method not supported by this state.
      */
     private function parseArguments(callable $call, array $matches) : array
     {
