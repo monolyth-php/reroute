@@ -403,5 +403,24 @@ $router->when('/user/{id}?/');
 ```
 
 Note that any argument found ending in a slash has this stripped, since normally
-slashes are reserved for argument separation.
+slashes are reserved for argument separation. Also, consequetive slashes are
+automatically collapsed.
+
+## Supported HTTP methods
+Reroute supports GET, POST, PUT, DELETE and OPTIONS HTTP methods. Each has a
+correspondingly named method on the `State` object you can use to define a
+response. If no response was defined, Reroute will return an instance of
+`Laminas\Diactoros\Response\EmptyResponse` with a 405 status code.
+
+There are, however, two special cases. If a GET response was defined, but no
+POST response was explicitly defined, the GET response will be used to respond
+to a POST action. Generally you should respond to a POST by actually doing
+something and then redirecting somewhere to prevent double posts, but this way
+at least your site won't break.
+
+The other exception is the HTTP HEAD method. This is supported automatically by
+taking the GET response, stripping the body, adding a Content-Lenth header and
+returning a `Laminas\Diactoros\Response\EmptyResponse` with status 200. This
+does obviously imply a GET response was defined; otherwise a 405 empty response
+will be returned.
 
