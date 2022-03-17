@@ -5,6 +5,8 @@ namespace Monolyth\Reroute;
 use Exception;
 use ReflectionMethod;
 use ReflectionFunction;
+use ReflectionType;
+use ReflectionNamedType;
 use InvalidArgumentException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -373,11 +375,12 @@ class State
         $arguments = [];
         $request = 'Psr\Http\Message\RequestInterface';
         foreach ($parameters as $value) {
-            if ($class = $value->getClass()
-                and $class->implementsInterface($request)
+            if ($class = $value->getType()->__toString()
+                and class_exists($class)
+                and $class::implementsInterface($request)
             ) {
                 $arguments[$value->name] = $this->request;
-            } elseif ($value->isCallable()) {
+            } elseif ($this->isCallable($value->getType())) {
                 if (isset($this->actions[$value->name])) {
                     $arguments[$value->name] = $this->actions[$value->name];
                 } else {
@@ -423,6 +426,14 @@ class State
             }
         });
         return $args;
+    }
+
+    private function isCallable(ReflectionType $type) : bool
+    {
+        $types = $type instanceof ReflectionUnionType
+            ? $type->getTypes()
+            : [$type];
+        return in_array('callable', array_map(fn(ReflectionNamedType $t) => $t->getName(), $types));
     }
 }
 
