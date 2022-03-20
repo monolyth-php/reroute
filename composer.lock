@@ -2524,22 +2524,22 @@
         },
         {
             "name": "toast/unit",
-            "version": "2.1.7",
+            "version": "2.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/toast-php/unit.git",
-                "reference": "9088061d73356f543a2cfe26cc8472394b1d4907"
+                "reference": "c06d05b61c716cabbf2309f8d68d3da25264d625"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/toast-php/unit/zipball/9088061d73356f543a2cfe26cc8472394b1d4907",
-                "reference": "9088061d73356f543a2cfe26cc8472394b1d4907",
+                "url": "https://api.github.com/repos/toast-php/unit/zipball/c06d05b61c716cabbf2309f8d68d3da25264d625",
+                "reference": "c06d05b61c716cabbf2309f8d68d3da25264d625",
                 "shasum": ""
             },
             "require": {
                 "monolyth/cliff": "^0.7.0",
                 "monomelodies/kingconf": "^1.1.0",
-                "php": ">=7.4",
+                "php": ">=8.1",
                 "simoneast/simple-ansi-colors": "^1.0"
             },
             "bin": [
@@ -2564,9 +2564,9 @@
             "description": "Super-simple unit testing for PHP7",
             "support": {
                 "issues": "https://github.com/toast-php/unit/issues",
-                "source": "https://github.com/toast-php/unit/tree/2.1.7"
+                "source": "https://github.com/toast-php/unit/tree/2.2.0"
             },
-            "time": "2022-01-02T13:52:06+00:00"
+            "time": "2022-03-20T15:15:48+00:00"
         },
         {
             "name": "twig/twig",
@@ -2700,20 +2700,23 @@
         },
         {
             "name": "zeptech/annotations",
-            "version": "1.1.0",
+            "version": "1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/pgraham/php-annotations.git",
-                "reference": "9cd042daa9ace184d04b49f0605edf73f19a9c71"
+                "reference": "a6fdc51f067cd2bc618bdc6d103edf65303693da"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/pgraham/php-annotations/zipball/9cd042daa9ace184d04b49f0605edf73f19a9c71",
-                "reference": "9cd042daa9ace184d04b49f0605edf73f19a9c71",
+                "url": "https://api.github.com/repos/pgraham/php-annotations/zipball/a6fdc51f067cd2bc618bdc6d103edf65303693da",
+                "reference": "a6fdc51f067cd2bc618bdc6d103edf65303693da",
                 "shasum": ""
             },
             "require": {
                 "php": ">=5.3.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^9"
             },
             "type": "library",
             "autoload": {
@@ -2723,12 +2726,12 @@
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
-                "BSD"
+                "BSD-3-Clause"
             ],
             "authors": [
                 {
                     "name": "Philip Graham",
-                    "email": "philip@zeptech.ca"
+                    "email": "philip.robert.graham@gmail.com"
                 }
             ],
             "description": "DOC Block annotation parsing for PHP",
@@ -2738,9 +2741,9 @@
             ],
             "support": {
                 "issues": "https://github.com/pgraham/php-annotations/issues",
-                "source": "https://github.com/pgraham/php-annotations/tree/master"
+                "source": "https://github.com/pgraham/php-annotations/tree/1.2.0"
             },
-            "time": "2013-05-29T02:35:23+00:00"
+            "time": "2022-03-19T17:19:13+00:00"
         }
     ],
     "aliases": [],
