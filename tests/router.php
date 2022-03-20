@@ -58,7 +58,7 @@ return function () : Generator {
         $router->when("/(?'foo'\w+)/(\w+)/")
                ->get(function ($bar, RequestInterface $request, $foo) {
                     $VERB = $request->getMethod();
-                    return new HtmlREsponse("$bar $VERB $foo");
+                    return new HtmlResponse("$bar $VERB $foo");
                });
         $_SERVER['REQUEST_URI'] = '/foo/bar/';
         $response = $router(ServerRequestFactory::fromGlobals());
