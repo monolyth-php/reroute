@@ -7,6 +7,7 @@ use ReflectionMethod;
 use ReflectionFunction;
 use ReflectionType;
 use ReflectionNamedType;
+use ReflectionClass;
 use InvalidArgumentException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -373,14 +374,14 @@ class State
         }
         $parameters = $reflection->getParameters();
         $arguments = [];
-        $request = 'Psr\Http\Message\RequestInterface';
         foreach ($parameters as $value) {
-            if ($class = $value->getType()->__toString()
-                and class_exists($class)
-                and $class::implementsInterface($request)
+            if ($type = $value->getType()
+                and $class = $type->__toString()
+                and (class_exists($class) or interface_exists($class))
+                and (new ReflectionClass($class))->implementsInterface(RequestInterface::class)
             ) {
                 $arguments[$value->name] = $this->request;
-            } elseif ($this->isCallable($value->getType())) {
+            } elseif ($type and $this->isCallable($type)) {
                 if (isset($this->actions[$value->name])) {
                     $arguments[$value->name] = $this->actions[$value->name];
                 } else {
