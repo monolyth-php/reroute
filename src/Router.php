@@ -280,7 +280,11 @@ class Router implements StageInterface
      */
     public function currentHost() : string
     {
-        $url = $this->request->getUri();
+        if (!isset($this->request)) {
+            $url = $this->url;
+        } else {
+            $url = $this->request->getUri();
+        }
         $parts = parse_url($url);
         unset($parts['query'], $parts['fragment'], $parts['path']);
         return http_build_url($parts);
