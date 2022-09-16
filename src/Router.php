@@ -64,11 +64,9 @@ class Router implements StageInterface
     protected static $matchedArguments = [];
 
     /**
-     * Constructor. In most cases you won't need to worry about the constructor
-     * arguments, but optionally you can pass a path part all routes _must_
-     * match (e.g. if Reroute only needs to catch parts of your project).
+     * Constructor. Pass the base URL (e.g. http://localhost/) as an argument.
      *
-     * @param string $url The path part _all_ URLs for this router must fall
+     * @param string $url The base URL _all_ URLs for this router must fall
      *  under in order to match.
      * @return void
      */
