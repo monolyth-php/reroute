@@ -20,48 +20,38 @@ use League\Pipeline\StageInterface;
 class Router implements StageInterface
 {
     /**
-     * @var array
-     *
      * "Global" storing all named states, for reference.
      */
-    protected static $namedStates = [];
+    protected static array $namedStates = [];
 
     /**
-     * @var array
-     *
      * Array storing defined routes.
      */
-    protected $routes = [];
+    protected array $routes = [];
 
     /**
-     * @var Psr\Http\Message\RequestInterface
-     *
      * Request object for the current request.
      */
-    protected $request;
+    protected RequestInterface $request;
+
+    private string $url;
 
     /**
-     * @var string
-     *
      * Host to use for every URL. Defaults to http://localhost
      * Note that this is fine if all URLs are on the same domain anyway, and
      * you're not passing the host name during resolve.
      */
-    protected $host = 'http://localhost';
+    protected string $host = 'http://localhost';
 
     /**
-     * @var string
-     *
      * Name of the current endstate.
      */
-    protected $name = null;
+    protected ?string $name = null;
 
     /**
-     * @var array
-     *
      * Hash of matched arguments for the resolved route.
      */
-    protected static $matchedArguments = [];
+    protected static array $matchedArguments = [];
 
     /**
      * Constructor. Pass the base URL (e.g. http://localhost/) as an argument.
