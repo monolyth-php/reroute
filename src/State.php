@@ -61,7 +61,7 @@ class State
      * @param string $url The URL this state is for.
      * @param string|null The (preferably unique) name of the state.
      */
-    public function __construct(string $url, string $name = null)
+    public function __construct(string $url, ?string $name = null)
     {
         $this->url = $url;
         $this->name = $name;
