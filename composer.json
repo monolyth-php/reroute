@@ -30,6 +30,6 @@
         "toast/unit": "^2.1",
         "gentry/gentry": "^0.13.12",
         "gentry/toast": "^0.1.1",
-        "laminas/laminas-diactoros": "^2.2"
+        "laminas/laminas-diactoros": "^3.5"
     }
 }
