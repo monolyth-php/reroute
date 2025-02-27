@@ -77,7 +77,7 @@ class Router implements StageInterface
      *  with a new subrouter with the `$url` as its base.
      * @return Monolyth\Reroute\State A new state representing the endpoint.
      */
-    public function when(string $url, string $name = null, callable $callback = null) : State
+    public function when(string $url, ?string $name = null, ?callable $callback = null) : State
     {
         $replace = function ($match) {
             $base = "(?'{$match[1]}'[a-zA-Z0-9-_]+";
@@ -152,7 +152,7 @@ class Router implements StageInterface
      * @return Psr\Http\Message\ResponseInterface|null
      * @see Monolyth\Reroute\Router::__invoke
      */
-    public function process($request = null) :? ResponseInterface
+    public function process($request) :? ResponseInterface
     {
         return $this($request);
     }
