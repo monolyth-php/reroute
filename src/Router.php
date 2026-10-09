@@ -257,7 +257,13 @@ class Router implements StageInterface
         if ($shortest and $current = $this->currentHost()) {
             $url = preg_replace("@^$current/?@", '/', $url);
         }
+        // Remove marker for optional characters. The generation mechanism here
+        // assumes you want to keep them; handle yourself at your own leisure.
+        $url = preg_replace('@(?<!\\\\)\?@', '', $url);
+        // Remove any remaining backslashes.
         $url = str_replace('\\', '', $url);
+        // Return the URL with all multiple consequetive forward slashes
+        // replaced by a single one.
         return preg_replace('@(?<!:)/{2,}@', '/', $url);
     }
 
